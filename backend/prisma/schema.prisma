@@ -5,11 +5,111 @@
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
 generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+enum TipoDocumento {
+  CEDULA_CIUDADANIA
+  CARNET_DIPLOMATICO
+  CEDULA_EXTRANJERIA
+  NIT
+  PERMISO_ESPECIAL_PERMANENCIA
+  PERMISO_PROTECCION_TEMPORAL
+  REGISTRO_CIVIL
+  SALVOCONDUCTO_PERMANENCIA
+  TARJETA_IDENTIDAD
+  NUIP
+}
+
+enum TipoAfiliacion {
+  PERSONA_NATURAL
+  PERSONA_JURIDICA
+}
+
+enum EstadoEmpresa {
+  ACTIVA
+  INACTIVA
+}
+
+enum RolUsuario {
+  ADMINISTRADOR
+  TECNICO_LIDER
+  TECNICO
+}
+
+model Superadministrador {
+  id            Int      @id @default(autoincrement())
+  nombreUsuario String   @unique
+  passwordHash  String
+  creadoEn      DateTime @default(now())
+}
+
+model Empresa {
+  id                   Int            @id @default(autoincrement())
+  numeroContrato       Int            @unique @default(autoincrement())
+  tipoAfiliacion       TipoAfiliacion
+  tipoIdentificacion   TipoDocumento
+  numeroIdentificacion String
+  digitoVerificacion   String?
+  consecutivo          String?
+  razonSocial          String?
+  departamento         String
+  ciudad               String
+  estado               EstadoEmpresa  @default(ACTIVA)
+  creadaEn             DateTime       @default(now())
+
+  responsable Responsable?
+  invitacion  Invitacion?
+  usuarios    Usuario[]
+
+  @@unique([tipoIdentificacion, numeroIdentificacion])
+}
+
+model Responsable {
+  id                 Int           @id @default(autoincrement())
+  empresaId          Int           @unique
+  empresa            Empresa       @relation(fields: [empresaId], references: [id])
+  nombres            String
+  apellidos          String
+  tipoDocumento      TipoDocumento
+  numeroDocumento    String
+  fechaExpedicion    DateTime      @db.Date
+  telefono           String
+  correo             String
+  direccion          String
+  nacionalidad1      String?
+  nacionalidad2      String?
+  paisNacimiento     String?
+  ciudadNacimiento   String?
+  profesionOcupacion String?
+}
+
+model Invitacion {
+  id        Int       @id @default(autoincrement())
+  token     String    @unique @default(uuid())
+  creadaEn  DateTime  @default(now())
+  expiraEn  DateTime
+  usadaEn   DateTime?
+  empresaId Int?      @unique
+  empresa   Empresa?  @relation(fields: [empresaId], references: [id])
+}
+
+model Usuario {
+  id            Int        @id @default(autoincrement())
+  empresaId     Int
+  empresa       Empresa    @relation(fields: [empresaId], references: [id])
+  rol           RolUsuario
+  nombre        String
+  nombreUsuario String     @unique
+  correo        String
+  passwordHash  String
+  activo        Boolean    @default(true)
+  creadoEn      DateTime   @default(now())
+
+  @@index([empresaId])
 }
