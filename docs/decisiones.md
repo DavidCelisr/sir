@@ -13,3 +13,9 @@ D-05. Invitaciones
 El Superadministrador genera la invitación (POST sin cuerpo); el token es un UUID con vigencia fija de 24 horas calculada en el servidor.
 El enlace se arma con la variable FRONTEND_URL.
 Pendiente: reenviar invitación (cómo y si genera token nuevo; UC-04). No definido: listar invitaciones.
+
+D-06. Validación de la invitación (Pantalla 1)
+
+Endpoint público GET /api/registro/invitaciones/:token. Solo consulta; no modifica la invitación.
+Una invitación es vigente si existe, no tiene usadaEn y su expiraEn es futura.
+Respuesta 404 con mensaje genérico para inexistente, vencida o usada.
