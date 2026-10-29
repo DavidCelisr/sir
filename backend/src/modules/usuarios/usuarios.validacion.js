@@ -32,3 +32,36 @@ export function validarSubperfil(body = {}) {
 
   return { errores, datos: { rol, nombre, correo, nombreUsuario, password } };
 }
+
+// Revisa el cambio de contraseña que envía el cliente, sin tocar la base de datos.
+export function validarCambioPassword(body = {}) {
+  const errores = [];
+
+  // Las contraseñas no se recortan: los espacios pueden ser parte de la clave
+  const passwordActual = typeof body.passwordActual === 'string' ? body.passwordActual : '';
+  const passwordNueva = typeof body.passwordNueva === 'string' ? body.passwordNueva : '';
+  const confirmacionPassword = typeof body.confirmacionPassword === 'string' ? body.confirmacionPassword : '';
+
+  // Todos los campos son obligatorios
+  if (!passwordActual) errores.push('passwordActual es obligatoria');
+
+  if (!passwordNueva) {
+    errores.push('passwordNueva es obligatoria');
+  } else if (passwordNueva.length < 8 || passwordNueva.length > 72) {
+    // Máximo 72
+    errores.push('passwordNueva debe tener entre 8 y 72 caracteres');
+  }
+
+  if (!confirmacionPassword) {
+    errores.push('confirmacionPassword es obligatoria');
+  } else if (passwordNueva && confirmacionPassword !== passwordNueva) {
+    errores.push('confirmacionPassword no coincide con passwordNueva');
+  }
+
+  if (passwordActual && passwordNueva && passwordActual === passwordNueva) {
+    errores.push('passwordNueva debe ser distinta de la actual');
+  }
+
+  // La confirmación solo sirve para comparar: el service no la necesita
+  return { errores, datos: { passwordActual, passwordNueva } };
+}
