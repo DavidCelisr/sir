@@ -53,3 +53,21 @@ export async function crearSubperfil({ empresaId, rolCreador }, { rol, nombre, c
     throw error;
   }
 }
+
+// cambiar password: id y empresaId vienen del token (req.auth), NUNCA del cuerpo
+export async function cambiarPassword({ id, empresaId }, { passwordActual, passwordNueva }) {
+  // Se busca por id Y empresaId
+  const usuario = await prisma.usuario.findFirst({
+    where: { id, empresaId },
+    select: { id: true, passwordHash: true },
+  });
+  if (!usuario) throw new ErrorNegocio(404, 'Usuario no encontrado');
+
+  // Exigir la clave actual
+  const claveCorrecta = await bcrypt.compare(passwordActual, usuario.passwordHash);
+  if (!claveCorrecta) throw new ErrorNegocio(400, 'La contraseña actual es incorrecta');
+
+  // Nunca se guarda la contraseña, solo su hash
+  const passwordHash = await bcrypt.hash(passwordNueva, 12);
+  await prisma.usuario.update({ where: { id: usuario.id }, data: { passwordHash } });
+}
