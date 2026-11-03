@@ -1,0 +1,7 @@
+/* Estilo base. El proyecto es minimalista (sin embargo se agregara UI en el futuro) */
+
+body {
+  font-family: system-ui, sans-serif;
+  margin: 0;
+  padding: 24px;
+}
