@@ -63,9 +63,10 @@ model Empresa {
   estado               EstadoEmpresa  @default(ACTIVA)
   creadaEn             DateTime       @default(now())
 
-  responsable Responsable?
-  invitacion  Invitacion?
-  usuarios    Usuario[]
+  responsable         Responsable?
+  invitacion          Invitacion?
+  usuarios            Usuario[]
+  codigosRecuperacion CodigoRecuperacion[]
 
   @@unique([tipoIdentificacion, numeroIdentificacion])
 }
@@ -100,16 +101,34 @@ model Invitacion {
 }
 
 model Usuario {
-  id            Int        @id @default(autoincrement())
-  empresaId     Int
-  empresa       Empresa    @relation(fields: [empresaId], references: [id])
-  rol           RolUsuario
-  nombre        String
-  nombreUsuario String     @unique
-  correo        String
-  passwordHash  String
-  activo        Boolean    @default(true)
-  creadoEn      DateTime   @default(now())
+  id                  Int                  @id @default(autoincrement())
+  empresaId           Int
+  empresa             Empresa              @relation(fields: [empresaId], references: [id])
+  rol                 RolUsuario
+  nombre              String
+  nombreUsuario       String               @unique
+  correo              String
+  passwordHash        String
+  activo              Boolean              @default(true)
+  creadoEn            DateTime             @default(now())
+  codigosRecuperacion CodigoRecuperacion[]
 
+  @@index([empresaId])
+}
+
+// Códigos OTP de recuperación de contraseña
+model CodigoRecuperacion {
+  id         Int       @id @default(autoincrement())
+  usuarioId  Int
+  usuario    Usuario   @relation(fields: [usuarioId], references: [id])
+  empresaId  Int
+  empresa    Empresa   @relation(fields: [empresaId], references: [id])
+  codigoHash String // el código nunca se guarda en claro
+  expiraEn   DateTime
+  intentos   Int       @default(0)
+  usadoEn    DateTime? // se llena al usarse o al ser reemplazado por otro código
+  creadoEn   DateTime  @default(now())
+
+  @@index([usuarioId])
   @@index([empresaId])
 }
