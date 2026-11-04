@@ -72,6 +72,14 @@ export function validarRegistro(body = {}) {
       departamento,
       ciudad,
     };
+        // NIT: solo números, exactamente 9 dígitos
+    if (empresa.numeroIdentificacion && !/^\d{9}$/.test(empresa.numeroIdentificacion)) {
+      errores.push('empresa.numeroIdentificacion debe tener exactamente 9 dígitos numéricos');
+    }
+    // Dígito de verificación: un solo número
+    if (empresa.digitoVerificacion && !/^\d$/.test(empresa.digitoVerificacion)) {
+      errores.push('empresa.digitoVerificacion debe ser un solo dígito');
+    }
   } else {
     // Persona natural: el documento de la empresa ES el de la persona (D-02)
     empresa = {

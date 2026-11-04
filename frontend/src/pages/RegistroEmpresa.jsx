@@ -35,7 +35,6 @@ export default function RegistroEmpresa() {
   const [afiliacion, setAfiliacion] = useState(null)
   const [paso, setPaso] = useState('afiliacion')
   const [datos, setDatos] = useState(DATOS_INICIALES)
-  const [aceptaTerminos, setAceptaTerminos] = useState(false) // solo frontend
   const [errores, setErrores] = useState({}) // errores por campo, del frontend
   const [erroresServidor, setErroresServidor] = useState([]) // errores que devuelve el backend
   const [enviando, setEnviando] = useState(false)
@@ -63,7 +62,15 @@ export default function RegistroEmpresa() {
   const esUltimo = indice === pasos.length - 1
 
   // Cada input actualiza su clave en 'datos' usando su atributo name
-  const cambiar = (e) => setDatos((previo) => ({ ...previo, [e.target.name]: e.target.value }))
+  const cambiar = (e) => {
+  const { name, value } = e.target
+  setDatos((previo) => ({
+    ...previo,
+    [name]: value,
+    // Al cambiar el departamento, el municipio anterior ya no corresponde
+    ...(name === 'departamento' ? { ciudad: '' } : {}),
+  }))
+}
 
   function elegirAfiliacion(tipo) {
     setAfiliacion(tipo)
@@ -79,7 +86,7 @@ export default function RegistroEmpresa() {
 
   // Valida el paso actual: avanza, o envía si es el último
   function continuar() {
-    const encontrados = validar(paso, datos, aceptaTerminos)
+    const encontrados = validar(paso, datos)
     setErrores(encontrados)
     if (Object.keys(encontrados).length > 0) return
 
@@ -141,7 +148,7 @@ export default function RegistroEmpresa() {
 
           {paso === 'empresa' && <PasoEmpresa datos={datos} errores={errores} onCambio={cambiar} />}
           {paso === 'datos' && <PasoPersonaNatural datos={datos} errores={errores} onCambio={cambiar} />}
-          {paso === 'terminos' && <PasoTerminos acepta={aceptaTerminos} onCambio={setAceptaTerminos} error={errores.terminos} />}
+          {paso === 'terminos' && <PasoTerminos afiliacion={afiliacion} />}
           {paso === 'representante' && <PasoRepresentante datos={datos} errores={errores} onCambio={cambiar} />}
 
           {erroresServidor.length > 0 && (
@@ -154,7 +161,11 @@ export default function RegistroEmpresa() {
             <button type="button" onClick={atras} disabled={enviando}>Atrás</button>
             {/* Desactivado mientras envía: evita registrar dos veces con un doble clic */}
             <button type="submit" disabled={enviando}>
-              {esUltimo ? (enviando ? 'Registrando…' : 'Registrar empresa') : 'Continuar'}
+              {enviando
+                ? 'Registrando…'
+                : paso === 'terminos'
+                  ? (esUltimo ? 'Aceptar y registrar empresa' : 'Aceptar y continuar')
+                  : (esUltimo ? 'Registrar empresa' : 'Continuar')}
             </button>
           </div>
         </form>

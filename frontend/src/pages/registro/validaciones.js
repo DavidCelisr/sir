@@ -42,14 +42,41 @@ function revisarResponsable(datos, extras = []) {
 // Revisa el paso actual. Devuelve {} si todo está bien.
 export function validar(paso, datos, aceptaTerminos) {
   switch (paso) {
-    case 'empresa': // persona jurídica: datos de la empresa
-      return exigir(datos, ['numeroIdentificacion', 'digitoVerificacion', 'razonSocial', 'departamento', 'ciudad'])
+    case 'empresa': { // persona jurídica: datos de la empresa
+      const errores = exigir(datos, [
+        'numeroIdentificacion',
+        'digitoVerificacion',
+        'razonSocial',
+        'departamento',
+        'ciudad'
+      ])
+
+      // NIT: solo números, exactamente 9 dígitos (D-15)
+      if (!errores.numeroIdentificacion && !/^\d{9}$/.test(datos.numeroIdentificacion.trim())) {
+        errores.numeroIdentificacion = 'El NIT debe tener exactamente 9 dígitos numéricos'
+      }
+
+      // Dígito de verificación: un solo número
+      if (!errores.digitoVerificacion && !/^\d$/.test(datos.digitoVerificacion.trim())) {
+        errores.digitoVerificacion = 'El dígito de verificación es un solo número'
+      }
+
+      return errores
+    }
+
     case 'datos': // persona natural: todo en un paso
-      return revisarResponsable(datos, ['nacionalidad1', 'paisNacimiento', 'ciudadNacimiento', 'profesionOcupacion', 'departamento', 'ciudad'])
-    case 'terminos':
-      return aceptaTerminos ? {} : { terminos: 'Debe aceptar para continuar' }
+      return revisarResponsable(datos, [
+        'nacionalidad1',
+        'paisNacimiento',
+        'ciudadNacimiento',
+        'profesionOcupacion',
+        'departamento',
+        'ciudad'
+      ])
+
     case 'representante': // persona jurídica: representante legal
       return revisarResponsable(datos)
+
     default:
       return {}
   }
