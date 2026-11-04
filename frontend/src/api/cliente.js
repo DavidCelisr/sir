@@ -31,11 +31,15 @@ export async function llamarApi(ruta, { metodo = 'GET', cuerpo, token } = {}) {
   const datos = await respuesta.json().catch(() => null)
 
   if (!respuesta.ok) {
-    // El backend responde { error } (un texto) o { errores } (una lista)
-    throw new ErrorApi(
-      respuesta.status,
-      datos?.error ?? 'Ocurrió un error inesperado',
-      datos?.errores ?? [],
+  // Un 500 el servidor (o el proxy) no está disponible
+  const porDefecto = respuesta.status >= 500 && !datos
+    ? 'El servidor no está disponible. Intente más tarde.'
+    : 'Ocurrió un error inesperado'
+
+  throw new ErrorApi(
+    respuesta.status,
+    datos?.error ?? porDefecto,
+    datos?.errores ?? [],
     )
   }
   return datos
