@@ -1,18 +1,18 @@
-import { TEXTO_TRATAMIENTO_DATOS } from '../../constants/textosLegales.js'
+import TextoLegal from '../../components/TextoLegal.jsx'
+import { LEGAL } from '../../constants/textosLegales.js'
 
-// Tratamiento de datos, términos y condiciones: texto + casilla obligatoria.
-// La aceptación NO se envía al backend ni se guarda. (condicionalmente se podría guardar en la base de datos, pero no es necesario).
-export default function PasoTerminos({ acepta, onCambio, error }) {
+// Términos, tratamiento de datos y declaraciones. Sin casilla:
+// el botón "Aceptar y continuar" equivale a la aceptación del aviso.
+export default function PasoTerminos({ afiliacion }) {
+  const legal = LEGAL[afiliacion] // el texto cambia según jurídica o natural
   return (
     <section>
-      <h2>Tratamiento de datos y términos y condiciones</h2>
-      <div className="caja-texto">{TEXTO_TRATAMIENTO_DATOS}</div>
-
-      <label>
-        <input type="checkbox" checked={acepta} onChange={(e) => onCambio(e.target.checked)} />
-        {' '}He leído y acepto el tratamiento de datos y los términos y condiciones
-      </label>
-      {error && <small className="error" role="alert"> {error}</small>}
+      <h2>Términos, condiciones y autorizaciones</h2>
+      <p>Lea los siguientes documentos antes de continuar.</p>
+      <div className="caja-texto">
+        <TextoLegal texto={legal.documentos} />
+      </div>
+      <p className="aviso-legal">{legal.aviso}</p>
     </section>
   )
 }

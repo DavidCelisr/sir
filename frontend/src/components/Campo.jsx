@@ -13,14 +13,29 @@ export default function Campo({
       </label>
 
       {opciones ? (
-        <select id={id} name={nombre} value={valor} onChange={onCambio}>
+        <select
+          id={id}
+          name={nombre}
+          value={valor}
+          onChange={onCambio}
+          {...resto}
+        >
           <option value="">Seleccione…</option>
           {opciones.map((o) => (
-            <option key={o.valor} value={o.valor}>{o.etiqueta}</option>
+            <option key={o.valor} value={o.valor}>
+              {o.etiqueta}
+            </option>
           ))}
         </select>
       ) : (
-        <input id={id} name={nombre} type={tipo} value={valor} onChange={onCambio} {...resto} />
+        <input
+          id={id}
+          name={nombre}
+          type={tipo}
+          value={valor}
+          onChange={onCambio}
+          {...resto}
+        />
       )}
 
       {ayuda && <small className="ayuda">{ayuda}</small>}
