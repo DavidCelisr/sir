@@ -24,9 +24,16 @@ export const porTexto = (etiqueta, texto) =>
 // lanza un error y la prueba FALLA. Es mejor que una pausa fija: espera lo
 // justo, sin importar si la página tarda 100 ms o 3 segundos.
 export async function esperar(driver, localizador, ms = ESPERA_MS) {
-  const elemento = await driver.wait(until.elementLocated(localizador), ms)
-  await driver.wait(until.elementIsVisible(elemento), ms)
-  return elemento
+  try {
+    const elemento = await driver.wait(until.elementLocated(localizador), ms)
+    await driver.wait(until.elementIsVisible(elemento), ms)
+    return elemento
+  } catch (error) {
+    if (error.name !== 'TimeoutError') throw error
+    const url = await driver.getCurrentUrl()
+    const texto = await driver.findElement(By.css('body')).getText().catch(() => '(sin texto)')
+    throw new Error(`${error.message}\n  URL: ${url}\n  Pantalla: ${texto.replace(/\s+/g, ' ').slice(0, 300)}`)
+  }
 }
 // Espera a que el elemento aparezca y le hace clic
 export async function clic(driver, localizador) {
@@ -79,4 +86,39 @@ export async function escribirFecha(driver, nombre, fecha) {
     campo,
     fecha,
   )
+}
+
+// Comprueba que frontend y backend estén listos ANTES de abrir el navegador.
+// Llama a /api/health por la dirección del frontend: el proxy de Vite la reenvía
+// al backend, así que una sola llamada verifica los dos servidores.
+// Reintenta hasta 30 s: tolera un reinicio breve del backend (node --watch).
+export async function esperarServidores(maxMs = 30000) {
+  const limite = Date.now() + maxMs
+  let motivo = 'sin respuesta'
+  while (Date.now() < limite) {
+    try {
+      const respuesta = await fetch(`${BASE_URL}/api/health`)
+      if (respuesta.ok) return
+      motivo = `respondió ${respuesta.status}` // 500 = el proxy no alcanza al backend
+    } catch (error) {
+      motivo = error.cause?.code ?? error.message // ECONNREFUSED = el frontend está apagado
+    }
+    await new Promise((resolver) => setTimeout(resolver, 1000)) // reintenta cada segundo
+  }
+  throw new Error(`Los servidores no están listos en ${BASE_URL} (${motivo}). ¿Están encendidos el backend y el frontend?`)
+}
+
+// Clave donde el frontend guarda el token (src/auth/almacen.js).
+// Si allí cambia, hay que cambiarla también aquí.
+export const CLAVE_TOKEN = 'sir.token'
+
+// Lee el token guardado en el sessionStorage del navegador. Devuelve null si no hay.
+// Selenium no puede ver el almacenamiento directamente: se le pide al navegador
+// que ejecute un pequeño script y devuelva el resultado.
+export const leerToken = (driver) =>
+  driver.executeScript('return window.sessionStorage.getItem(arguments[0])', CLAVE_TOKEN)
+
+// Devuelve la ruta actual (por ejemplo '/portal'), sin la dirección base ni parámetros.
+export async function rutaActual(driver) {
+  return new URL(await driver.getCurrentUrl()).pathname
 }
