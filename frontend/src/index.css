@@ -85,3 +85,28 @@ button {
   padding: 10px 16px;
   cursor: pointer;
 }
+
+.pestanas {
+  display: flex;
+  gap: 8px;
+  margin: 16px 0;
+  border-bottom: 1px solid #ccc;
+}
+
+.pestanas button {
+  border: none;
+  background: none;
+  padding: 10px 16px;
+  border-bottom: 3px solid transparent;
+}
+
+.pestanas button[aria-selected="true"] {
+  border-bottom-color: #333;
+  font-weight: 600;
+}
+
+.exito {
+  border: 1px solid #1b7f3b;
+  padding: 12px;
+  margin: 16px 0;
+}
