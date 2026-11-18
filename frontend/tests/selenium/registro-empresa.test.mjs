@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { By } from 'selenium-webdriver'
 import {
   BASE_URL, crearDriver, esperar, clic, porTexto, erroresDelCampo,
-  escribir, elegir, elegirPrimera, escribirFecha,
+  escribir, elegir, elegirPrimera, escribirFecha, esperarServidores,
 } from './helpers.mjs'
 import { crearInvitacion, nitAleatorio } from './datos-prueba.mjs'
 
@@ -13,12 +13,13 @@ const TOKEN_INEXISTENTE = '00000000-0000-4000-8000-000000000000'
 
 let driver
 
-// Se abre UN navegador antes de las pruebas de este archivo...
+// Antes de abrir el navegador se comprueba que los servidores respondan
 before(async () => {
+  await esperarServidores()
   driver = await crearDriver()
 })
 
-// ...y se cierra al final, incluso si alguna prueba falla.
+// y se cierra al final, incluso si alguna prueba falla.
 after(async () => {
   await driver?.quit()
 })

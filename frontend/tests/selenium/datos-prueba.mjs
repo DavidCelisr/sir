@@ -58,3 +58,65 @@ export async function crearInvitacion() {
 export function nitAleatorio() {
   return String(Math.floor(100000000 + Math.random() * 900000000))
 }
+
+// Registra una empresa jurídica nueva por API (como lo haría la Pantalla 1) y devuelve
+// su NIT. La empresa queda SIN administrador. Es preparación de datos: la prueba
+// de interfaz empieza después. La razón social lleva el NIT para ubicarla y borrarla.
+export async function registrarEmpresa() {
+  const token = await crearInvitacion()
+  const nit = nitAleatorio()
+
+  await llamarApi('/api/registro/empresas', {
+    metodo: 'POST',
+    cuerpo: {
+      token,
+      tipoAfiliacion: 'PERSONA_JURIDICA',
+      empresa: {
+        numeroIdentificacion: nit,
+        digitoVerificacion: '3',
+        consecutivo: '',
+        razonSocial: `Empresa Selenium ${nit}`,
+        departamento: 'Antioquia',
+        ciudad: 'Medellín',
+      },
+      responsable: {
+        nombres: 'Marta',
+        apellidos: 'Rojas Díaz',
+        tipoDocumento: 'CEDULA_CIUDADANIA',
+        numeroDocumento: '52123456',
+        fechaExpedicion: '2012-05-10',
+        telefono: '3001112233',
+        correo: 'prueba.selenium@example.com',
+        direccion: 'Carrera 7 # 12-30',
+      },
+    },
+  })
+
+  return { nit }
+}
+
+// Contraseña de los administradores creados para las pruebas
+export const CLAVE_PRUEBA = 'ClaveSelenium123'
+
+// Registra una empresa por API y le crea el usuario administrador, también
+// por API. Es preparación de datos: la prueba de interfaz empieza con la empresa
+// y su administrador ya existentes. Devuelve lo que la prueba necesita para
+// iniciar sesión y para comprobar lo que muestra la pantalla.
+export async function registrarEmpresaConAdministrador() {
+  const { nit } = await registrarEmpresa()
+  const nombreUsuario = `admin.${nit}`
+
+  await llamarApi('/api/registro/usuario-principal', {
+    metodo: 'POST',
+    cuerpo: { tipoDocumento: 'NIT', numeroDocumento: nit, nombreUsuario, password: CLAVE_PRUEBA },
+  })
+
+  return {
+    nit,
+    nombreUsuario,
+    clave: CLAVE_PRUEBA,
+    // El nombre sale del responsable registrado: nombres + apellidos
+    nombre: 'Marta Rojas Díaz',
+    razonSocial: `Empresa Selenium ${nit}`,
+  }
+}
