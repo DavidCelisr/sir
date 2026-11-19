@@ -5,7 +5,7 @@ import { useSesion } from '../../auth/SesionContext.jsx'
 
 // Inicio de sesion. El login no lleva token, así que una clave incorrecta
 // no dispara el cierre de sesión global.
-export default function FormularioLogin() {
+export default function FormularioLogin({ onOlvido }) {
   const { iniciarSesion } = useSesion()
   const [datos, setDatos] = useState({ nombreUsuario: '', password: '' })
   const [errores, setErrores] = useState({})
@@ -52,6 +52,11 @@ export default function FormularioLogin() {
       <div className="acciones">
         <button type="submit" disabled={enviando}>{enviando ? 'Ingresando…' : 'Ingresar'}</button>
       </div>
+
+      {/* RF-11: todos los usuarios pueden recuperar su contraseña */}
+      <p>
+        <button type="button" className="enlace" onClick={onOlvido}>Olvidé mi contraseña</button>
+      </p>
     </form>
   )
 }

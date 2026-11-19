@@ -9,6 +9,13 @@ const VIGENCIA_MINUTOS = 10;
 const MAX_INTENTOS = 5;
 const ESPERA_SEGUNDOS = 60;
 
+// Mensajes de la solicitud de recuperación
+const MSG_NO_ENCONTRADA =
+  'No se pudo encontrar una cuenta para el ID de usuario proporcionado';
+
+const MSG_NO_HABILITADA =
+  'La cuenta no está habilitada. Comuníquese con el administrador de su empresa'; 
+
 // Un solo mensaje para todo código malo: incorrecto, vencido, usado o sin intentos
 const MSG_CODIGO_INVALIDO = 'El código es inválido o ya venció';
 
@@ -21,33 +28,52 @@ const generarCodigo = () => String(randomInt(0, 1_000_000)).padStart(6, '0');
 // Solo se recupera la clave de cuentas activas de empresas activas
 const cuentaHabilitada = (u) => u && u.activo && u.empresa.estado === 'ACTIVA';
 
-// PASO 1 genera y envía el código. Nunca revela si el usuario existe:
-// no devuelve nada y el controller responde siempre lo mismo.
+// PASO 1 (RF-11): verifica que el usuario exista y le envía el código.
+// Devuelve { enviado, segundosEspera }; lanza un error si no puede continuar.
 export async function solicitarCodigo(nombreUsuario) {
   const usuario = await prisma.usuario.findUnique({
     where: { nombreUsuario },
     include: { empresa: { select: { estado: true } } },
   });
 
-  // Se hashea SIEMPRE, aunque no se use, para que todas las ramas tarden parecido
-  const codigo = generarCodigo();
-  const codigoHash = await bcrypt.hash(codigo, 12);
+  // Si no existe, se informa
+  if (!usuario) {
+    throw new ErrorNegocio(404, MSG_NO_ENCONTRADA);
+  }
 
-  if (!cuentaHabilitada(usuario)) return;
+  // Solo se recupera la clave de cuentas activas de empresas activas (RN-29)
+  if (!cuentaHabilitada(usuario)) {
+    throw new ErrorNegocio(403, MSG_NO_HABILITADA);
+  }
 
-  // Decisión 5: si se emitió un código hace menos de 60 s, no se envía otro.
-  // silenciosamente, para que no se pueda averiguar si el usuario existe.
+  // Espera entre solicitudes: si se emitió un código hace poco,
+  // no se envía otro y se informa cuánto tiempo falta
   const ultimo = await prisma.codigoRecuperacion.findFirst({
     where: { usuarioId: usuario.id },
     orderBy: { creadoEn: 'desc' },
     select: { creadoEn: true },
   });
-  if (ultimo && Date.now() - ultimo.creadoEn.getTime() < ESPERA_SEGUNDOS * 1000) return;
 
+  if (ultimo) {
+    const faltanMs =
+      ESPERA_SEGUNDOS * 1000 -
+      (Date.now() - ultimo.creadoEn.getTime());
+
+    if (faltanMs > 0) {
+      return {
+        enviado: false,
+        segundosEspera: Math.ceil(faltanMs / 1000),
+      };
+    }
+  }
+
+  const codigo = generarCodigo();
+  const codigoHash = await bcrypt.hash(codigo, 12);
   const ahora = new Date();
+
   try {
-    // Decisión 4: un solo código vigente. Se invalidan los anteriores y se crea el nuevo,
-    // todo en una transacción.
+    // Un solo código vigente: se invalidan los anteriores y se crea el nuevo,
+    // todo en una transacción
     await prisma.$transaction([
       prisma.codigoRecuperacion.updateMany({
         where: { usuarioId: usuario.id, usadoEn: null },
@@ -58,14 +84,22 @@ export async function solicitarCodigo(nombreUsuario) {
           usuarioId: usuario.id,
           empresaId: usuario.empresaId, // la empresa sale de la base, nunca del cliente
           codigoHash,
-          expiraEn: new Date(ahora.getTime() + VIGENCIA_MINUTOS * 60 * 1000),
-          creadoEn: ahora, // fijado desde el servidor: todas las fechas usan el mismo reloj
+          expiraEn: new Date(
+            ahora.getTime() + VIGENCIA_MINUTOS * 60 * 1000
+          ),
+          creadoEn: ahora, // fijado desde el servidor
         },
       }),
     ]);
   } catch (error) {
-    // Dos solicitudes simultáneas: el indice único de usuario+creadoEn puede fallar. Se ignora: el código ya se creó.
-    if (error.code === 'P2002') return;
+    // Dos solicitudes simultáneas: el índice único dejó pasar solo a una
+    if (error.code === 'P2002') {
+      return {
+        enviado: false,
+        segundosEspera: ESPERA_SEGUNDOS,
+      };
+    }
+
     throw error;
   }
 
@@ -77,8 +111,16 @@ export async function solicitarCodigo(nombreUsuario) {
       texto: `Su código es: ${codigo}\nVence en ${VIGENCIA_MINUTOS} minutos. Si no lo solicitó, ignore este mensaje.`,
     });
   } catch (error) {
-    console.error('No se pudo enviar el código de recuperación:', error.message);
+    console.error(
+      'No se pudo enviar el código de recuperación:',
+      error.message
+    );
   }
+
+  return {
+    enviado: true,
+    segundosEspera: ESPERA_SEGUNDOS,
+  };
 }
 
 // PASO 2: valida el código y establece la nueva contraseña
