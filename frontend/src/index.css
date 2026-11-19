@@ -110,3 +110,15 @@ button {
   padding: 12px;
   margin: 16px 0;
 }
+.info { 
+  border: 1px solid #555; 
+  padding: 12px; 
+  margin: 16px 0; 
+}
+.enlace { 
+  border: none; 
+  background: none; 
+  padding: 0; 
+  text-decoration: underline; 
+  cursor: pointer; 
+}

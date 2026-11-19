@@ -3,15 +3,28 @@ import { validarSolicitud, validarRestablecer } from './recuperacion.validacion.
 import { ErrorNegocio } from '../../lib/errores.js';
 
 // Siempre la misma respuesta, exista o no el usuario
-const MSG_SOLICITUD = 'Si el usuario existe, enviamos un código al correo registrado';
+const MSG_ENVIADO = 'Enviamos un código de verificación al correo registrado'
 
 // POST /api/auth/recuperar/solicitar 
 export async function solicitar(req, res) {
   const { errores, datos } = validarSolicitud(req.body);
   if (errores.length > 0) return res.status(400).json({ errores });
 
-  await service.solicitarCodigo(datos.nombreUsuario);
-  res.json({ mensaje: MSG_SOLICITUD });
+  try {
+    const { enviado, segundosEspera } = await service.solicitarCodigo(datos.nombreUsuario);
+    res.json({
+      mensaje: enviado
+        ? MSG_ENVIADO
+        : `Ya enviamos un código hace poco. Use ese código o espere ${segundosEspera} segundos para solicitar otro`,
+      segundosEspera, // el frontend lo usa para la cuenta regresiva de "Reenviar código"
+    });
+  } catch (error) {
+    // 404 usuario inexistente y 403 cuenta no habilitada llevan su propio mensaje
+    if (error instanceof ErrorNegocio) {
+      return res.status(error.estado).json({ error: error.message });
+    }
+    throw error; // inesperado: Express responde 500
+  }
 }
 
 // POST /api/auth/recuperar/restablecer
