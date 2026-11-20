@@ -65,3 +65,37 @@ export function validarCambioPassword(body = {}) {
   // La confirmación solo sirve para comparar: el service no la necesita
   return { errores, datos: { passwordActual, passwordNueva } };
 }
+const ROLES = Object.values(RolUsuario);
+
+// Filtro del listado: ?rol=TECNICO. Sin rol, se listan todos. Es lo único que se filtra:
+// no hay filtro por estado porque no se manejan desactivaciones (D-21).
+export function validarFiltroUsuarios(query = {}) {
+  const { rol } = query;
+  const errores = [];
+  if (rol !== undefined && (typeof rol !== 'string' || !ROLES.includes(rol))) {
+    errores.push('rol no es un rol válido');
+  }
+  return { errores, datos: { rol } };
+}
+
+// El id llega por la URL (/usuarios/:id). Debe ser un entero positivo que quepa en la columna.
+// Devuelve el número, o null si no es válido.
+export function validarIdUsuario(valor) {
+  const id = Number(valor);
+  return /^\d+$/.test(valor) && id > 0 && id <= 2147483647 ? id : null;
+}
+
+// Edición desde la administración de usuarios: solo nombre y correo
+// El rol, el nombre de usuario y la contraseña NO se editan desde aquí, y cualquier
+// otro campo que llegue en el cuerpo se ignora a propósito.
+export function validarEdicion(body = {}) {
+  const errores = [];
+  const nombre = texto(body.nombre);
+  const correo = texto(body.correo);
+
+  if (!nombre) errores.push('nombre es obligatorio');
+  if (!correo) errores.push('correo es obligatorio');
+  else if (!correoValido(correo)) errores.push('correo no tiene un formato válido');
+
+  return { errores, datos: { nombre, correo } };
+}
