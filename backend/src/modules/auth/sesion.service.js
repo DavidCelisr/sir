@@ -9,6 +9,7 @@ export async function obtenerSesion({ id, empresaId }) {
       nombre: true,
       nombreUsuario: true,
       rol: true,
+      correo: true, // lo muestra "Mi perfil"
       empresa: {
         select: {
           tipoAfiliacion: true,
@@ -30,7 +31,7 @@ export async function obtenerSesion({ id, empresaId }) {
         : null;
 
   return {
-    usuario: { nombre: usuario.nombre, nombreUsuario: usuario.nombreUsuario, rol: usuario.rol },
+    usuario: { nombre: usuario.nombre, nombreUsuario: usuario.nombreUsuario, rol: usuario.rol, correo: usuario.correo },
     empresa: { nombre: nombreEmpresa ?? 'Empresa', tipoAfiliacion: empresa.tipoAfiliacion },
   };
 }
