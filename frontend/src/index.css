@@ -122,3 +122,100 @@ button {
   text-decoration: underline; 
   cursor: pointer; 
 }
+
+/* Cabecera del portal: marca a la izquierda, menú y perfil a la derecha */
+.cabecera {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding-bottom: 12px;
+  margin-bottom: 24px;
+  border-bottom: 1px solid #ccc;
+}
+
+/* Menú principal de navegación */
+.cabecera nav {
+  display: flex;
+  gap: 16px;
+  flex: 1;
+}
+
+/* Contenedor del menú de perfil */
+.menu-perfil {
+  position: relative;
+  margin-left: auto;
+}
+
+/* Botón circular del perfil */
+.avatar {
+  box-sizing: border-box;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid #333;
+  background: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* Indicador visual al navegar con teclado */
+.avatar:focus-visible {
+  outline: 2px solid #333;
+  outline-offset: 3px;
+}
+
+/* Menú desplegable del perfil */
+.desplegable {
+  position: absolute;
+  right: 0;
+  top: 48px;
+  min-width: 260px;
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.10);
+  z-index: 10;
+}
+
+/* Información de la cuenta */
+.info-cuenta {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 4px 12px;
+  margin: 0;
+  padding: 12px 14px;
+}
+
+.info-cuenta dt {
+  font-weight: 600;
+}
+
+.info-cuenta dd {
+  margin: 0;
+}
+
+/* Opciones y acciones del perfil */
+.grupo-opciones {
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid #ccc;
+}
+
+/* Enlaces y botones del menú */
+.grupo-opciones a,
+.grupo-opciones button {
+  padding: 10px 14px;
+  text-align: left;
+  border: none;
+  background: none;
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+/* Efecto al pasar el cursor */
+.grupo-opciones a:hover,
+.grupo-opciones button:hover {
+  background: #eee;
+}

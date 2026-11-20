@@ -82,14 +82,46 @@ export function SesionProvider({ children }) {
 
   const reintentar = useCallback(() => {
     const guardado = leerToken()
+
     if (!guardado) return cerrarSesion()
+
     setEstado('verificando')
     validar(guardado)
   }, [validar, cerrarSesion])
 
+  // Llama al backend usando automáticamente el token de la sesión.
+  const llamar = useCallback(
+    (ruta, opciones = {}) => llamarApi(ruta, { ...opciones, token }),
+    [token],
+  )
+
+  // Actualiza los datos del usuario y la empresa sin mostrar
+  // el estado "Verificando sesión…".
+  const refrescar = useCallback(async () => {
+    if (!token) return
+
+    try {
+      setDatos(await llamarApi('/api/portal/sesion', { token }))
+    } catch (error) {
+      if (error instanceof ErrorApi && error.estado === 403) {
+        cerrarSesion(AVISO_INVALIDA)
+      }
+    }
+  }, [token, cerrarSesion])
+
   return (
     <SesionContext.Provider
-      value={{ estado, aviso, usuario: datos?.usuario, empresa: datos?.empresa, iniciarSesion, cerrarSesion, reintentar }}
+      value={{
+        estado,
+        aviso,
+        usuario: datos?.usuario,
+        empresa: datos?.empresa,
+        iniciarSesion,
+        cerrarSesion,
+        reintentar,
+        llamar,
+        refrescar,
+      }}
     >
       {children}
     </SesionContext.Provider>
