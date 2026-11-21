@@ -1,36 +1,50 @@
 import prismaClient from '@prisma/client';
 
-const { RolUsuario } = prismaClient;
+const { RolUsuario, TipoDocumento } = prismaClient;
 
 const texto = (v) => (typeof v === 'string' ? v.trim() : '');
 const correoValido = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+// Recorta y colapsa los espacios repetidos: "  Ana   María " -> "Ana María"
+const nombreLimpio = (v) => texto(v).replace(/\s+/g, ' ');
 
-// Revisa el formato de lo que envía el cliente, sin tocar la base de datos.
 // aquí NO se lee empresaId. se ignora a propósito.
+// Crea un subperfil con datos personales y de acceso; el nombre completo se genera automáticamente y empresaId se obtiene de la sesión
 export function validarSubperfil(body = {}) {
   const errores = [];
 
   const rol = body.rol;
-  const nombre = texto(body.nombre);
+  const nombres = nombreLimpio(body.nombres);
+  const apellidos = nombreLimpio(body.apellidos);
+  const tipoDocumento = body.tipoDocumento;
+  const numeroDocumento = texto(body.numeroDocumento);
   const correo = texto(body.correo);
   const nombreUsuario = texto(body.nombreUsuario);
   // La contraseña no se recorta: los espacios pueden ser parte de la clave
   const password = typeof body.password === 'string' ? body.password : '';
 
   if (!Object.values(RolUsuario).includes(rol)) errores.push('rol no es un rol válido');
-  if (!nombre) errores.push('nombre es obligatorio');
+  if (!nombres) errores.push('nombres es obligatorio');
+  if (!apellidos) errores.push('apellidos es obligatorio');
+  if (!Object.values(TipoDocumento).includes(tipoDocumento)) {
+    errores.push('tipoDocumento no es un tipo de documento válido');
+  }
+  if (!numeroDocumento) errores.push('numeroDocumento es obligatorio');
   if (!correo) errores.push('correo es obligatorio');
   else if (!correoValido(correo)) errores.push('correo no tiene un formato válido');
 
+  // Mismas reglas provisionales de D-08.
   if (!/^[A-Za-z0-9._-]{4,30}$/.test(nombreUsuario)) {
     errores.push('nombreUsuario debe tener de 4 a 30 caracteres: letras, números, punto, guion o guion bajo');
   }
-  // Máximo 72 caracteres porque bcrypt no admite más de 72
+  // Máximo 72: bcrypt ignora lo que pase de ahí
   if (password.length < 8 || password.length > 72) {
     errores.push('password debe tener entre 8 y 72 caracteres');
   }
 
-  return { errores, datos: { rol, nombre, correo, nombreUsuario, password } };
+  return {
+    errores,
+    datos: { rol, nombres, apellidos, tipoDocumento, numeroDocumento, correo, nombreUsuario, password },
+  };
 }
 
 // Revisa el cambio de contraseña que envía el cliente, sin tocar la base de datos.
@@ -85,17 +99,17 @@ export function validarIdUsuario(valor) {
   return /^\d+$/.test(valor) && id > 0 && id <= 2147483647 ? id : null;
 }
 
-// Edición desde la administración de usuarios: solo nombre y correo
-// El rol, el nombre de usuario y la contraseña NO se editan desde aquí, y cualquier
-// otro campo que llegue en el cuerpo se ignora a propósito.
+// Actualiza nombres, apellidos y correo; los demás campos no son editables
 export function validarEdicion(body = {}) {
   const errores = [];
-  const nombre = texto(body.nombre);
+  const nombres = nombreLimpio(body.nombres);
+  const apellidos = nombreLimpio(body.apellidos);
   const correo = texto(body.correo);
 
-  if (!nombre) errores.push('nombre es obligatorio');
+  if (!nombres) errores.push('nombres es obligatorio');
+  if (!apellidos) errores.push('apellidos es obligatorio');
   if (!correo) errores.push('correo es obligatorio');
   else if (!correoValido(correo)) errores.push('correo no tiene un formato válido');
 
-  return { errores, datos: { nombre, correo } };
+  return { errores, datos: { nombres, apellidos, correo } };
 }

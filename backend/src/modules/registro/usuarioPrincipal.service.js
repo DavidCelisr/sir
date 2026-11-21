@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs';
 import { prisma } from '../../lib/prisma.js';
 import { ErrorNegocio } from '../../lib/errores.js';
 import { enviarCorreo } from '../../lib/correo.js';
+import { nombreCompleto } from '../../lib/nombres.js';
 
 // Mensaje definido en RF-09 / 5.2
 const MSG_YA_TIENE_ADMIN = 'La empresa ya tiene un usuario principal/administrador asignado';
@@ -45,7 +46,11 @@ export async function crearUsuarioPrincipal({ tipoDocumento, numeroDocumento, no
       data: {
         empresaId: empresa.id,
         rol: 'ADMINISTRADOR', // lo fija el servidor, nunca el cliente
-        nombre: `${r.nombres} ${r.apellidos}`,
+        nombres: r.nombres,
+        apellidos: r.apellidos,
+        nombre: nombreCompleto(r.nombres, r.apellidos),
+        tipoDocumento: r.tipoDocumento,
+        numeroDocumento: r.numeroDocumento,
         nombreUsuario,
         correo: r.correo, // el correo registrado de la empresa (RF-10)
         passwordHash,

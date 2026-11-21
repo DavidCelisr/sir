@@ -85,3 +85,24 @@ export async function eliminar(req, res) {
     responderError(res, error);
   }
 }
+// GET /api/portal/usuarios/mi-cuenta: datos de la cuenta de quien tiene la sesión
+export async function verMiCuenta(req, res) {
+  try {
+    // Quién consulta: siempre el dueño del token
+    res.json(await service.obtenerMiCuenta({ id: req.auth.id, empresaId: req.auth.empresaId }));
+  } catch (error) {
+    responderError(res, error);
+  }
+}
+
+// PATCH /api/portal/usuarios/mi-cuenta: actualiza nombres, apellidos y correo
+export async function actualizarMiCuenta(req, res) {
+  const { errores, datos } = validarEdicion(req.body);
+  if (errores.length > 0) return res.status(400).json({ errores });
+
+  try {
+    res.json(await service.actualizarMiCuenta({ id: req.auth.id, empresaId: req.auth.empresaId }, datos));
+  } catch (error) {
+    responderError(res, error);
+  }
+}

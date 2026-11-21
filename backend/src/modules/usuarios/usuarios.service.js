@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs';
 import { prisma } from '../../lib/prisma.js';
 import { ErrorNegocio } from '../../lib/errores.js';
+import { nombreCompleto } from '../../lib/nombres.js';
 
 // roles que puede crear cada rol. El Administrador solo nace en el
 // registro autogestionado, por eso no figura como creable.
@@ -13,13 +14,16 @@ const MSG_YA_TIENE_LIDER = 'La empresa ya tiene un Técnico Líder'; // mensaje 
 const MSG_USUARIO_EN_USO = 'Ese nombre de usuario ya está en uso';
 
 // empresaId y rolCreador vienen del token (req.auth), NUNCA del cuerpo
-export async function crearSubperfil({ empresaId, rolCreador }, { rol, nombre, correo, nombreUsuario, password }) {
+export async function crearSubperfil(
+  { empresaId, rolCreador },
+  { rol, nombres, apellidos, tipoDocumento, numeroDocumento, correo, nombreUsuario, password },
+) {
   // 1. ¿Este rol puede crear ese tipo de usuario?
   if (!(ROLES_CREABLES[rolCreador] ?? []).includes(rol)) {
     throw new ErrorNegocio(403, 'No tiene permiso para crear ese tipo de usuario');
   }
 
-  // 2. un solo Técnico Líder por empresa
+  // 2. RN-05: un solo Técnico Líder por empresa
   if (rol === 'TECNICO_LIDER') {
     const yaHay = await prisma.usuario.findFirst({
       where: { empresaId, rol: 'TECNICO_LIDER' },
@@ -37,9 +41,12 @@ export async function crearSubperfil({ empresaId, rolCreador }, { rol, nombre, c
 
   try {
     return await prisma.usuario.create({
-      data: { empresaId, rol, nombre, correo, nombreUsuario, passwordHash },
-      // No se devuelve el hash
-      select: { id: true, nombre: true, nombreUsuario: true, correo: true, rol: true, activo: true },
+      data: {
+        empresaId, rol, nombres, apellidos,
+        nombre: nombreCompleto(nombres, apellidos), // nombre completo, generado (D-24)
+        tipoDocumento, numeroDocumento, correo, nombreUsuario, passwordHash,
+      },
+      select: SELECCION, // no se devuelve el hash
     });
   } catch (error) {
     // Dos peticiones simultáneas pueden pasar los controles de arriba;
@@ -76,7 +83,10 @@ export async function cambiarPassword({ id, empresaId }, { passwordActual, passw
 const MSG_ADMIN_PROTEGIDO = 'El usuario administrador no se puede modificar ni eliminar desde aquí';
 
 // Campos que se devuelven. Nunca el hash de la contraseña ni la empresa.
-const SELECCION = { id: true, nombre: true, nombreUsuario: true, rol: true, correo: true, creadoEn: true };
+const SELECCION = {
+  id: true, nombres: true, apellidos: true, nombre: true, nombreUsuario: true, rol: true,
+  correo: true, tipoDocumento: true, numeroDocumento: true, creadoEn: true,
+};
 
 // soloLectura le indica al frontend que no debe ofrecer editar ni eliminar al Administrador
 const conSoloLectura = (u) => ({ ...u, soloLectura: u.rol === 'ADMINISTRADOR' });
@@ -102,15 +112,15 @@ async function buscarGestionable(empresaId, id) {
   return usuario;
 }
 
-// Edita nombre y correo. El correo editado es el que recibe los códigos de recuperación.
-export async function editarUsuario({ empresaId }, id, { nombre, correo }) {
+// Permite al Administrador editar los datos personales y el correo de otro usuario
+export async function editarUsuario({ empresaId }, id, { nombres, apellidos, correo }) {
   await buscarGestionable(empresaId, id);
 
   // La escritura repite empresaId y "no administrador": aunque la revisión de arriba fallara,
   // esta condición impide tocar a un administrador o a un usuario de otra empresa.
   const resultado = await prisma.usuario.updateMany({
     where: { id, empresaId, rol: { not: 'ADMINISTRADOR' } },
-    data: { nombre, correo },
+    data: { nombres, apellidos, nombre: nombreCompleto(nombres, apellidos), correo },
   });
   if (resultado.count === 0) throw new ErrorNegocio(404, 'Usuario no encontrado'); // lo eliminaron en medio
 
@@ -160,4 +170,26 @@ export async function eliminarUsuario({ empresaId }, id) {
     }
     throw error;
   }
+}
+// Lo que muestra la pantalla "Actualizar datos". El documento y el rol solo se leen.
+const SELECCION_CUENTA = {
+  nombres: true, apellidos: true, correo: true, rol: true, tipoDocumento: true, numeroDocumento: true,
+};
+
+// Datos de la cuenta de quien tiene la sesión. id y empresaId vienen del token
+export async function obtenerMiCuenta({ id, empresaId }) {
+  const usuario = await prisma.usuario.findFirst({ where: { id, empresaId }, select: SELECCION_CUENTA });
+  if (!usuario) throw new ErrorNegocio(404, 'Usuario no encontrado');
+  return usuario;
+}
+
+// Actualiza SOLO nombres, apellidos y correo de la cuenta propia. No se pide la contraseña
+// actual. El rol, el documento y el nombre de usuario no se tocan. "nombre" se recalcula.
+export async function actualizarMiCuenta({ id, empresaId }, { nombres, apellidos, correo }) {
+  const resultado = await prisma.usuario.updateMany({
+    where: { id, empresaId },
+    data: { nombres, apellidos, nombre: nombreCompleto(nombres, apellidos), correo },
+  });
+  if (resultado.count === 0) throw new ErrorNegocio(404, 'Usuario no encontrado');
+  return obtenerMiCuenta({ id, empresaId });
 }
