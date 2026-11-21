@@ -106,6 +106,10 @@ model Usuario {
   empresa             Empresa              @relation(fields: [empresaId], references: [id])
   rol                 RolUsuario
   nombre              String
+  nombres             String 
+  apellidos           String? 
+  tipoDocumento       TipoDocumento?
+  numeroDocumento     String?
   nombreUsuario       String               @unique
   correo              String
   passwordHash        String

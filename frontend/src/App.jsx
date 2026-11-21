@@ -9,6 +9,7 @@ import RutaProtegida from './components/RutaProtegida.jsx'
 import RutaRol from './components/RutaRol.jsx'
 import LayoutPortal from './components/LayoutPortal.jsx'
 import { ADMIN_Y_LIDER } from './portal/menu.js'
+import ActualizarDatos from './pages/ActualizarDatos.jsx'
 
 // Mapa de pantallas: cada URL muestra una pantalla del documento de definición.
 export default function App() {
@@ -20,8 +21,7 @@ export default function App() {
       {/* Pantalla 2: portal de ingreso (la bienvenida por correo apunta a /portal) */}
       <Route path="/portal" element={<Portal />} />
 
-      {/* Provisional: el documento no define una página de inicio.
-          Como el sistema es cerrado, la raíz lleva al portal. */}
+      {/* La raíz redirige al portal de ingreso. */}
       <Route path="/" element={<Navigate to="/portal" replace />} />
 
       {/* Todo lo que está aquí dentro exige sesión y usa la cabecera.
@@ -29,7 +29,7 @@ export default function App() {
       <Route element={<RutaProtegida><LayoutPortal /></RutaProtegida>}>
         <Route path="/inicio" element={<Inicio />} />
         <Route path="/cambiar-password" element={<CambiarPassword />} />
-        {/* Gestión de usuarios: Administrador y Técnico Líder (D-23) */}
+        <Route path="/actualizar-datos" element={<ActualizarDatos />} />
         <Route path="/usuarios" element={<RutaRol roles={ADMIN_Y_LIDER}><Usuarios /></RutaRol>} />
       </Route>
 

@@ -78,6 +78,7 @@ export default function MenuPerfil() {
           )}
 
           <div className="grupo-opciones">
+            <Link to="/actualizar-datos" onClick={cerrar}>Actualizar datos</Link>
             <Link to="/cambiar-password" onClick={cerrar}>Cambiar contraseña</Link>
             {/* Función flecha: cerrarSesion() sin argumentos. Si recibiera el evento, lo tomaría como "motivo" */}
             <button type="button" onClick={() => { cerrar(); cerrarSesion() }}>Cerrar sesión</button>
