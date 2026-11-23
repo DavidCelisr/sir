@@ -127,17 +127,16 @@ button {
 .cabecera {
   display: flex;
   align-items: center;
-  gap: 24px;
-  padding-bottom: 12px;
+  gap: 16px;
+  padding: 8px 0 12px;
   margin-bottom: 24px;
   border-bottom: 1px solid #ccc;
 }
 
-/* Menú principal de navegación */
-.cabecera nav {
-  display: flex;
-  gap: 16px;
-  flex: 1;
+/* "Inicio" con una clase propia: el panel lateral también es un <nav> dentro de la cabecera, y no debe heredar esto */
+.nav-principal { 
+  display: flex; 
+  gap: 16px; 
 }
 
 /* Contenedor del menú de perfil */
@@ -263,3 +262,25 @@ dialog {
 dialog::backdrop {
   background: rgba(0, 0, 0, 0.4);
 }
+/* Botón desplegable junto a "Inicio" */
+.boton-menu {
+  padding: 6px 10px;
+  font-size: 1.2em;
+  line-height: 1;
+  border: 1px solid #333;
+  background: #fff;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+/* Panel lateral: sale desde la izquierda y se superpone a la página, sin empujarla */
+dialog.panel-lateral { margin: 0; padding: 0; width: 280px; max-width: 85vw; height: 100vh; max-height: 100vh; border: none; border-right: 1px solid #333; background: #fff; inset: 0 auto 0 0; }
+dialog.panel-lateral[open] { animation: entrar-izquierda 0.2s ease-out; }
+@keyframes entrar-izquierda { from { transform: translateX(-100%); } to { transform: translateX(0); } }
+@media (prefers-reduced-motion: reduce) { dialog.panel-lateral[open] { animation: none; } }
+.panel-contenido { padding: 16px; }
+.panel-cabecera { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.panel-cabecera h2 { margin: 0; font-size: 1.1em; }
+.nav-modulos ul { list-style: none; margin: 0; padding: 0; }
+.nav-modulos a { display: block; padding: 10px 8px; text-decoration: none; color: inherit; }
+.nav-modulos a:hover { background: #eee; }
+.nav-modulos a.active { font-weight: 600; background: #eee; }
