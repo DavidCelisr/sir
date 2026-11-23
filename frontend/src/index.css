@@ -219,3 +219,47 @@ button {
 .grupo-opciones button:hover {
   background: #eee;
 }
+
+/* gestion de usuarios */
+.barra-listado {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 16px 0;
+}
+
+.boton-enlace {
+  display: inline-block;
+  padding: 10px 16px;
+  border: 1px solid #333;
+  text-decoration: none;
+  color: inherit;
+}
+
+.tabla-contenedor {
+  overflow-x: auto;
+}
+
+.tabla {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.tabla th,
+.tabla td {
+  text-align: left;
+  padding: 8px 10px;
+  border-bottom: 1px solid #ccc;
+}
+
+dialog {
+  max-width: 440px;
+  border: 1px solid #333;
+  padding: 20px;
+}
+
+dialog::backdrop {
+  background: rgba(0, 0, 0, 0.4);
+}
