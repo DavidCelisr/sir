@@ -9,6 +9,7 @@ import { soloEmpresa } from './middlewares/soloEmpresa.js';
 import rutasUsuarios from './modules/usuarios/usuarios.routes.js';
 import rutasRecuperacion from './modules/recuperacion/recuperacion.routes.js';
 import rutasSesion from './modules/auth/sesion.routes.js';
+import rutasInventario from './modules/inventario/inventario.routes.js';
 
 const app = express();
 app.use(express.json());
@@ -28,6 +29,7 @@ app.use('/api/superadmin', autenticar, soloSuperadmin, rutasSuperadmin);
 // Portal de las empresas: token válido, de tipo "empresa", con cuenta y empresa activas
 const rutasPortal = express.Router();
 rutasPortal.use('/usuarios', rutasUsuarios);
+rutasPortal.use('/inventario', rutasInventario);
 rutasPortal.use('/sesion', rutasSesion);
 app.use('/api/portal', autenticar, soloEmpresa, rutasPortal);
 
