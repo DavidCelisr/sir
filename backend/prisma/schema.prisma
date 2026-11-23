@@ -67,6 +67,8 @@ model Empresa {
   invitacion          Invitacion?
   usuarios            Usuario[]
   codigosRecuperacion CodigoRecuperacion[]
+  piezas              Pieza[]
+  movimientosPieza    MovimientoPieza[]
 
   @@unique([tipoIdentificacion, numeroIdentificacion])
 }
@@ -106,8 +108,8 @@ model Usuario {
   empresa             Empresa              @relation(fields: [empresaId], references: [id])
   rol                 RolUsuario
   nombre              String
-  nombres             String 
-  apellidos           String? 
+  nombres             String
+  apellidos           String?
   tipoDocumento       TipoDocumento?
   numeroDocumento     String?
   nombreUsuario       String               @unique
@@ -116,6 +118,7 @@ model Usuario {
   activo              Boolean              @default(true)
   creadoEn            DateTime             @default(now())
   codigosRecuperacion CodigoRecuperacion[]
+  movimientosPieza    MovimientoPieza[]
 
   @@index([empresaId])
 }
@@ -134,5 +137,52 @@ model CodigoRecuperacion {
   creadoEn   DateTime  @default(now())
 
   @@index([usuarioId])
+  @@index([empresaId])
+}
+
+// inventario modulo
+enum TipoMovimientoPieza {
+  ALTA // la pieza se crea con unas existencias y un precio iniciales
+  AJUSTE // suma o resta manual de existencias (cantidad con signo)
+  CAMBIO_PRECIO // cambio del precio unitario
+}
+
+// Pieza del inventario
+model Pieza {
+  id             Int      @id @default(autoincrement())
+  empresaId      Int
+  empresa        Empresa  @relation(fields: [empresaId], references: [id])
+  codigo         String? // opcional; único por empresa entre piezas activas (índice en la migración)
+  nombre         String
+  precioUnitario Decimal  @db.Decimal(12, 2) // en pesos, sin IVA
+  unidades       Int      @default(0) // unidades disponibles (nunca negativas: CHECK en la migración)
+  stockMinimo    Int      @default(0) // valor de control para saber cuándo reabastecer
+  activo         Boolean  @default(true) // false = pieza eliminada (inactivación lógica)
+  creadaEn       DateTime @default(now())
+
+  movimientos MovimientoPieza[]
+
+  @@index([empresaId])
+}
+
+// Historial de la pieza dentro del inventario: no es el historial de casos ni de solicitudes
+model MovimientoPieza {
+  id              Int                 @id @default(autoincrement())
+  empresaId       Int
+  empresa         Empresa             @relation(fields: [empresaId], references: [id])
+  piezaId         Int
+  pieza           Pieza               @relation(fields: [piezaId], references: [id])
+  tipo            TipoMovimientoPieza
+  cantidad        Int? // ALTA: existencias iniciales. AJUSTE: variación con signo
+  unidadesAntes   Int?
+  unidadesDespues Int?
+  precioAntes     Decimal?            @db.Decimal(12, 2)
+  precioDespues   Decimal?            @db.Decimal(12, 2)
+  usuarioId       Int?
+  usuario         Usuario?            @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
+  usuarioNombre   String // nombre de quien actuó TAL COMO ERA en ese momento, mas que todo registro
+  creadoEn        DateTime            @default(now())
+
+  @@index([piezaId, creadoEn])
   @@index([empresaId])
 }
