@@ -1,21 +1,24 @@
 import { NavLink, Outlet } from 'react-router'
 import { useSesion } from '../auth/SesionContext.jsx'
 import { opcionesPara } from '../portal/menu.js'
+import MenuLateral from './MenuLateral.jsx'
 import MenuPerfil from './MenuPerfil.jsx'
 
-// Estructura común de las pantallas del portal. La cabecera lleva SOLO tres cosas:
-// el nombre del sistema, "Inicio" y el círculo de perfil en el extremo derecho.
-// Los datos del usuario y de la empresa están dentro del menu
+// Estructura común del portal con cabecera, navegación según el rol, menú lateral y perfil del usuario.
 export default function LayoutPortal() {
   const { usuario } = useSesion()
   return (
     <>
       <header className="cabecera">
+        <MenuLateral />
+
         <strong>SIR</strong>
 
-        <nav aria-label="Principal">
+        <nav aria-label="Principal" className="nav-principal">
           {opcionesPara(usuario.rol).map((opcion) => (
-            <NavLink key={opcion.ruta} to={opcion.ruta}>{opcion.texto}</NavLink>
+            <NavLink key={opcion.ruta} to={opcion.ruta}>
+              {opcion.texto}
+            </NavLink>
           ))}
         </nav>
 

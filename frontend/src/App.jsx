@@ -7,6 +7,7 @@ import CambiarPassword from './pages/CambiarPassword.jsx'
 import ActualizarDatos from './pages/ActualizarDatos.jsx'
 import Usuarios from './pages/Usuarios.jsx'
 import UsuarioNuevo from './pages/UsuarioNuevo.jsx'
+import Inventario from './pages/Inventario.jsx'
 import RutaProtegida from './components/RutaProtegida.jsx'
 import RutaRol from './components/RutaRol.jsx'
 import LayoutPortal from './components/LayoutPortal.jsx'
@@ -32,9 +33,11 @@ export default function App() {
         <Route path="/inicio" element={<Inicio />} />
         <Route path="/actualizar-datos" element={<ActualizarDatos />} />
         <Route path="/cambiar-password" element={<CambiarPassword />} />
-        {/* Gestión de usuarios: Administrador y Técnico Líder (D-23, D-25) */}
+        {/* Gestión de usuarios: Administrador y Técnico Líder */}
         <Route path="/usuarios" element={<RutaRol roles={ADMIN_Y_LIDER}><Usuarios /></RutaRol>} />
         <Route path="/usuarios/nuevo" element={<RutaRol roles={ADMIN_Y_LIDER}><UsuarioNuevo /></RutaRol>} />
+        {/* Módulos del panel lateral. Inventario: Administrador y Técnico Líder */}
+        <Route path="/inventario" element={<RutaRol roles={ADMIN_Y_LIDER}><Inventario /></RutaRol>} />
       </Route>
 
       {/* Cualquier otra dirección */}
