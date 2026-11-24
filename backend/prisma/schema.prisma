@@ -70,6 +70,8 @@ model Empresa {
   piezas              Pieza[]
   movimientosPieza    MovimientoPieza[]
   clientes            Cliente[]
+  cotizaciones        Cotizacion[]
+  contadorCotizacion  ContadorCotizacion?
 
   @@unique([tipoIdentificacion, numeroIdentificacion])
 }
@@ -120,6 +122,7 @@ model Usuario {
   creadoEn            DateTime             @default(now())
   codigosRecuperacion CodigoRecuperacion[]
   movimientosPieza    MovimientoPieza[]
+  cotizaciones        Cotizacion[]
 
   @@index([empresaId])
 }
@@ -161,7 +164,8 @@ model Pieza {
   activo         Boolean  @default(true) // false = pieza eliminada (inactivación lógica)
   creadaEn       DateTime @default(now())
 
-  movimientos MovimientoPieza[]
+  movimientos      MovimientoPieza[]
+  lineasCotizacion CotizacionLinea[]
 
   @@index([empresaId])
 }
@@ -204,6 +208,77 @@ model Cliente {
   creadoEn        DateTime      @default(now())
   actualizadoEn   DateTime      @updatedAt
 
+  cotizaciones Cotizacion[]
+
   // Un cliente es único por empresa; el mismo documento puede existir en empresas distintas
   @@unique([empresaId, tipoDocumento, numeroDocumento])
+}
+
+enum TipoLineaCotizacion {
+  PIEZA
+  SERVICIO_BASICO
+  SERVICIO_ESPECIALIZADO
+}
+
+// Contador de la numeración de cotizaciones: una fila por empresa, así cada empresa
+// lleva su propia secuencia, independiente de las demás
+model ContadorCotizacion {
+  empresaId Int     @id
+  empresa   Empresa @relation(fields: [empresaId], references: [id])
+  ultimo    Int     @default(0)
+}
+
+// Cotización: registro histórico. No se modifica ni se elimina; un
+// disparador de PostgreSQL lo garantiza. Guarda una COPIA de los datos del cliente al momento.
+model Cotizacion {
+  id        Int     @id @default(autoincrement())
+  empresaId Int
+  empresa   Empresa @relation(fields: [empresaId], references: [id])
+  numero    Int // secuencial por empresa (RN-31); se muestra como COT-000123
+
+  clienteId              Int
+  cliente                Cliente       @relation(fields: [clienteId], references: [id])
+  // Copia histórica del cliente: las correcciones posteriores NO alteran la cotización
+  clienteTipoDocumento   TipoDocumento
+  clienteNumeroDocumento String
+  clienteNombre          String
+  clienteCorreo          String?
+  clienteTelefono        String?
+  clienteCiudad          String? // ciudad de RESIDENCIA del cliente
+  clienteDireccion       String?
+
+  ciudadServicio String // ciudad del SERVICIO: distinta de la ciudad del cliente
+  diagnostico    String
+  total          Decimal @db.Decimal(18, 2) // sin IVA
+
+  creadaPorId     Int
+  creadaPor       Usuario  @relation(fields: [creadaPorId], references: [id])
+  creadaPorNombre String // nombre TAL COMO ERA al crearla (D-24)
+  creadaEn        DateTime @default(now())
+
+  lineas CotizacionLinea[]
+
+  @@unique([empresaId, numero])
+  @@index([empresaId, creadaEn])
+  @@index([clienteId])
+}
+
+// Línea de una cotización: una pieza del inventario o un servicio. Copia el código, el nombre y el
+// precio de la pieza al momento: los cambios posteriores del inventario no la alteran.
+model CotizacionLinea {
+  id             Int                 @id @default(autoincrement())
+  cotizacionId   Int
+  cotizacion     Cotizacion          @relation(fields: [cotizacionId], references: [id])
+  orden          Int
+  tipo           TipoLineaCotizacion
+  piezaId        Int? // solo en las líneas de pieza
+  pieza          Pieza?              @relation(fields: [piezaId], references: [id], onDelete: Restrict)
+  codigo         String? // copia del código de la pieza
+  descripcion    String // copia del nombre de la pieza, o la descripción del servicio
+  cantidad       Int
+  precioUnitario Decimal             @db.Decimal(12, 2)
+  subtotal       Decimal             @db.Decimal(18, 2)
+
+  @@index([cotizacionId])
+  @@index([piezaId])
 }
