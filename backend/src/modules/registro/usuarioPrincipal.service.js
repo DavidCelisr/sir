@@ -3,14 +3,15 @@ import { prisma } from '../../lib/prisma.js';
 import { ErrorNegocio } from '../../lib/errores.js';
 import { enviarCorreo } from '../../lib/correo.js';
 import { nombreCompleto } from '../../lib/nombres.js';
+import { normalizarDocumento } from '../../lib/documentos.js';
 
-// Mensaje definido en RF-09 / 5.2
+// Mensaje definido
 const MSG_YA_TIENE_ADMIN = 'La empresa ya tiene un usuario principal/administrador asignado';
 const MSG_USUARIO_EN_USO = 'Ese nombre de usuario ya está en uso';
 
-// RF-09, RF-10, RT-07: crea el administrador de una empresa registrada
+// crea el administrador de una empresa registrada
 export async function crearUsuarioPrincipal({ tipoDocumento, numeroDocumento, nombreUsuario, password }) {
-  // 1. Ubicar la empresa por su documento (RT-07). El dígito de verificación no participa (D-02).
+  // 1. Ubicar la empresa por su documento. El dígito de verificación no participa.
   const empresa = await prisma.empresa.findUnique({
     where: {
       tipoIdentificacion_numeroIdentificacion: {
@@ -21,11 +22,11 @@ export async function crearUsuarioPrincipal({ tipoDocumento, numeroDocumento, no
     include: { responsable: true }, // aqui se obtiene el nombre y el correo registrado
   });
   if (!empresa) {
-    // Mensaje provisional: UC-06 no define qué responder si no coincide
+    // Mensaje provisional: no define qué responder si no coincide
     throw new ErrorNegocio(404, 'No hay una empresa registrada con ese documento');
   }
 
-  // 2. RN-04: una empresa solo puede tener un usuario principal
+  // 2. una empresa solo puede tener un usuario principal
   const yaTieneAdmin = await prisma.usuario.findFirst({
     where: { empresaId: empresa.id, rol: 'ADMINISTRADOR' },
     select: { id: true },
@@ -50,9 +51,9 @@ export async function crearUsuarioPrincipal({ tipoDocumento, numeroDocumento, no
         apellidos: r.apellidos,
         nombre: nombreCompleto(r.nombres, r.apellidos),
         tipoDocumento: r.tipoDocumento,
-        numeroDocumento: r.numeroDocumento,
+        numeroDocumento: normalizarDocumento(r.numeroDocumento),
         nombreUsuario,
-        correo: r.correo, // el correo registrado de la empresa (RF-10)
+        correo: r.correo, // el correo registrado de la empresa
         passwordHash,
       },
       select: { nombreUsuario: true, rol: true }, // no se devuelve el hash

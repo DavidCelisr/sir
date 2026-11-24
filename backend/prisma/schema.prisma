@@ -69,6 +69,7 @@ model Empresa {
   codigosRecuperacion CodigoRecuperacion[]
   piezas              Pieza[]
   movimientosPieza    MovimientoPieza[]
+  clientes            Cliente[]
 
   @@unique([tipoIdentificacion, numeroIdentificacion])
 }
@@ -185,4 +186,24 @@ model MovimientoPieza {
 
   @@index([piezaId, creadoEn])
   @@index([empresaId])
+}
+
+// Cliente de la empresa. Se registra y se reutiliza al crear una cotización o un caso;
+// esto se hace por que no existe un módulo de gestión de clientes.
+model Cliente {
+  id              Int           @id @default(autoincrement())
+  empresaId       Int
+  empresa         Empresa       @relation(fields: [empresaId], references: [id])
+  tipoDocumento   TipoDocumento
+  numeroDocumento String // normalizado: mayúsculas, sin espacios, puntos ni guiones (CHECK en la migración)
+  nombre          String // nombre completo o razón social
+  correo          String?
+  telefono        String?
+  ciudad          String?
+  direccion       String?
+  creadoEn        DateTime      @default(now())
+  actualizadoEn   DateTime      @updatedAt
+
+  // Un cliente es único por empresa; el mismo documento puede existir en empresas distintas
+  @@unique([empresaId, tipoDocumento, numeroDocumento])
 }

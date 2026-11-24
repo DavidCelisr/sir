@@ -1,4 +1,5 @@
 import prismaClient from '@prisma/client';
+import { normalizarDocumento } from '../../lib/documentos.js';
 
 const { TipoDocumento } = prismaClient;
 
@@ -9,7 +10,7 @@ export function validarUsuarioPrincipal(body = {}) {
   const errores = [];
 
   const tipoDocumento = body.tipoDocumento;
-  const numeroDocumento = texto(body.numeroDocumento);
+  const numeroDocumento = normalizarDocumento(body.numeroDocumento);
   const nombreUsuario = texto(body.nombreUsuario);
   // La contraseña NO se recorta: los espacios pueden ser parte de la clave
   const password = typeof body.password === 'string' ? body.password : '';
