@@ -1,4 +1,5 @@
 import prismaClient from '@prisma/client';
+import { normalizarDocumento, DOCUMENTO_VALIDO, MSG_DOCUMENTO } from '../../lib/documentos.js';
 
 const { RolUsuario, TipoDocumento } = prismaClient;
 
@@ -16,7 +17,7 @@ export function validarSubperfil(body = {}) {
   const nombres = nombreLimpio(body.nombres);
   const apellidos = nombreLimpio(body.apellidos);
   const tipoDocumento = body.tipoDocumento;
-  const numeroDocumento = texto(body.numeroDocumento);
+  const numeroDocumento = normalizarDocumento(body.numeroDocumento);
   const correo = texto(body.correo);
   const nombreUsuario = texto(body.nombreUsuario);
   // La contraseña no se recorta: los espacios pueden ser parte de la clave
@@ -28,11 +29,11 @@ export function validarSubperfil(body = {}) {
   if (!Object.values(TipoDocumento).includes(tipoDocumento)) {
     errores.push('tipoDocumento no es un tipo de documento válido');
   }
-  if (!numeroDocumento) errores.push('numeroDocumento es obligatorio');
+  if (!DOCUMENTO_VALIDO.test(numeroDocumento)) errores.push(`numeroDocumento ${MSG_DOCUMENTO}`);
   if (!correo) errores.push('correo es obligatorio');
   else if (!correoValido(correo)) errores.push('correo no tiene un formato válido');
 
-  // Mismas reglas provisionales de D-08.
+  // Mismas reglas provisionales
   if (!/^[A-Za-z0-9._-]{4,30}$/.test(nombreUsuario)) {
     errores.push('nombreUsuario debe tener de 4 a 30 caracteres: letras, números, punto, guion o guion bajo');
   }

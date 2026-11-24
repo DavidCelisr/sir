@@ -1,4 +1,5 @@
 import prismaClient from '@prisma/client';
+import { normalizarDocumento, DOCUMENTO_VALIDO, MSG_DOCUMENTO } from '../../lib/documentos.js';
 
 // Los enums del esquema, para no repetir las listas a mano
 const { TipoDocumento, TipoAfiliacion } = prismaClient;
@@ -36,7 +37,7 @@ export function validarRegistro(body = {}) {
     nombres: requerido(r.nombres, 'responsable.nombres'),
     apellidos: requerido(r.apellidos, 'responsable.apellidos'),
     tipoDocumento: r.tipoDocumento,
-    numeroDocumento: requerido(r.numeroDocumento, 'responsable.numeroDocumento'),
+    numeroDocumento: normalizarDocumento(r.numeroDocumento), // se guarda normalizado
     telefono: requerido(r.telefono, 'responsable.telefono'),
     correo: requerido(r.correo, 'responsable.correo'),
     direccion: requerido(r.direccion, 'responsable.direccion'),
@@ -44,6 +45,9 @@ export function validarRegistro(body = {}) {
 
   if (!Object.values(TipoDocumento).includes(responsable.tipoDocumento)) {
     errores.push('responsable.tipoDocumento no es un tipo de documento válido');
+  }
+  if (!DOCUMENTO_VALIDO.test(responsable.numeroDocumento)) {
+    errores.push(`responsable.numeroDocumento ${MSG_DOCUMENTO}`);
   }
   if (responsable.correo && !correoValido(responsable.correo)) {
     errores.push('responsable.correo no tiene un formato válido');
