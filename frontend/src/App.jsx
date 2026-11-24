@@ -12,6 +12,7 @@ import RutaProtegida from './components/RutaProtegida.jsx'
 import RutaRol from './components/RutaRol.jsx'
 import LayoutPortal from './components/LayoutPortal.jsx'
 import { ADMIN_Y_LIDER } from './portal/menu.js'
+import PiezaNueva from './pages/PiezaNueva.jsx'
 
 // Mapa de pantallas: cada URL muestra una pantalla del documento de definición.
 export default function App() {
@@ -38,6 +39,7 @@ export default function App() {
         <Route path="/usuarios/nuevo" element={<RutaRol roles={ADMIN_Y_LIDER}><UsuarioNuevo /></RutaRol>} />
         {/* Módulos del panel lateral. Inventario: Administrador y Técnico Líder */}
         <Route path="/inventario" element={<RutaRol roles={ADMIN_Y_LIDER}><Inventario /></RutaRol>} />
+        <Route path="/inventario/nueva" element={<RutaRol roles={ADMIN_Y_LIDER}><PiezaNueva /></RutaRol>} />
       </Route>
 
       {/* Cualquier otra dirección */}

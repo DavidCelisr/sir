@@ -284,3 +284,17 @@ dialog.panel-lateral[open] { animation: entrar-izquierda 0.2s ease-out; }
 .nav-modulos a { display: block; padding: 10px 8px; text-decoration: none; color: inherit; }
 .nav-modulos a:hover { background: #eee; }
 .nav-modulos a.active { font-weight: 600; background: #eee; }
+
+/* Inventario */
+.buscador { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.fila-pieza { cursor: pointer; }
+.fila-pieza:hover { background: #f3f3f3; }
+.paginacion { display: flex; align-items: center; gap: 12px; margin: 16px 0; }
+dialog.dialogo-pieza { width: 460px; max-width: 92vw; border: 1px solid #333; padding: 16px 20px; }
+.dialogo-cabecera { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.dialogo-cabecera h2 { margin: 0 0 4px; }
+.dialogo-cabecera h2:focus { outline: none; }
+.dialogo-cabecera small { color: #555; }
+.historial { list-style: none; margin: 0; padding: 0; }
+.historial li { padding: 8px 0; border-bottom: 1px solid #ddd; }
+.historial small { display: block; color: #555; }
