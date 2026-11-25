@@ -10,9 +10,10 @@ import { LIMITE_CANTIDAD, LIMITE_DIAGNOSTICO, LIMITE_LINEAS } from '../constants
 import { DOCUMENTO_VALIDO, MSG_DOCUMENTO, normalizarDocumento } from '../utils/documento.js'
 import { cantidadValida } from '../utils/importes.js'
 import { numero } from '../utils/formato.js'
+import CamposUbicacion from '../components/CamposUbicacion.jsx'
 
 const DOCUMENTO_INICIAL = { tipoDocumento: '', numeroDocumento: '' }
-const NUEVO_INICIAL = { nombre: '', correo: '', telefono: '', ciudad: '', direccion: '' }
+const NUEVO_INICIAL = { nombre: '', correo: '', telefono: '', departamentoResidencia: '', ciudad: '', direccion: '' } // departamentoResidencia solo sirve para elegir la ciudad: NO se envía ni se guarda
 const MSG_LIMITE_LINEAS = `Una cotización admite hasta ${LIMITE_LINEAS} líneas.`
 const OBLIGATORIO = 'Este campo es obligatorio'
 
@@ -35,9 +36,14 @@ function validar({ documento, estadoCliente, nuevo, servicio, lineas }) {
     if (correo && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) errores.correo = 'El correo no tiene un formato válido'
     const telefono = nuevo.telefono.trim()
     if (telefono && !/^[0-9+()\s-]{7,20}$/.test(telefono)) errores.telefono = 'El teléfono no tiene un formato válido'
+    // Los dos campos son opcionales, pero un departamento sin ciudad se descartaría en silencio
+    if (nuevo.departamentoResidencia && !nuevo.ciudad) {
+      errores.ciudad = 'Elija la ciudad o deje el departamento sin seleccionar'
+    }
   }
 
-  if (!servicio.ciudadServicio.trim()) errores.ciudadServicio = OBLIGATORIO
+  if (!servicio.departamentoServicio) errores.departamentoServicio = OBLIGATORIO
+  if (!servicio.ciudadServicio) errores.ciudadServicio = OBLIGATORIO
   if (!servicio.diagnostico.trim()) errores.diagnostico = OBLIGATORIO
 
   if (lineas.length === 0) {
@@ -63,7 +69,7 @@ export default function CotizacionNueva() {
   const consultaCliente = useRef(0) // descarta respuestas atrasadas
 
   // Servicio y líneas
-  const [servicio, setServicio] = useState({ ciudadServicio: '', diagnostico: '' })
+  const [servicio, setServicio] = useState({ departamentoServicio: '', ciudadServicio: '', diagnostico: '' })
   const [lineas, setLineas] = useState([])
   const siguienteClave = useRef(1)
 
@@ -85,8 +91,24 @@ export default function CotizacionNueva() {
     setNuevo(NUEVO_INICIAL)
   }
 
-  const cambiarNuevo = (e) => setNuevo((previo) => ({ ...previo, [e.target.name]: e.target.value }))
-  const cambiarServicio = (e) => setServicio((previo) => ({ ...previo, [e.target.name]: e.target.value }))
+  const cambiarNuevo = (e) => {
+    const { name, value } = e.target
+    setNuevo((previo) => ({
+      ...previo,
+      [name]: value,
+      // Al cambiar el departamento, la ciudad elegida ya no corresponde
+      ...(name === 'departamentoResidencia' ? { ciudad: '' } : {}),
+    }))
+  }
+  const cambiarServicio = (e) => {
+    const { name, value } = e.target
+    setServicio((previo) => ({
+      ...previo,
+      [name]: value,
+      // Al cambiar el departamento, la ciudad elegida ya no corresponde
+      ...(name === 'departamentoServicio' ? { ciudadServicio: '' } : {}),
+    }))
+  }
 
   // Recupera al cliente por documento (GET /api/portal/clientes/por-documento).
   // Un 404 NO es un error: significa que es un cliente nuevo.
@@ -168,7 +190,16 @@ export default function CotizacionNueva() {
     // Con un cliente existente NO se envían datos personales: el servidor copia los almacenados
     const cliente = estadoCliente === 'existente'
       ? { tipoDocumento: documento.tipoDocumento, numeroDocumento: numeroDoc }
-      : { tipoDocumento: documento.tipoDocumento, numeroDocumento: numeroDoc, ...nuevo }
+      : {
+          tipoDocumento: documento.tipoDocumento,
+          numeroDocumento: numeroDoc,
+          // El departamento de residencia NO viaja: solo ayudó a elegir la ciudad
+          nombre: nuevo.nombre,
+          correo: nuevo.correo,
+          telefono: nuevo.telefono,
+          ciudad: nuevo.ciudad,
+          direccion: nuevo.direccion,
+        }
 
     setEnviando(true) // desactiva el botón: evita crear dos cotizaciones con un doble clic
     try {
@@ -213,10 +244,13 @@ export default function CotizacionNueva() {
 
         <section className="bloque" aria-labelledby="titulo-servicio">
           <h2 id="titulo-servicio">Servicio</h2>
-          <Campo etiqueta="Ciudad del servicio" nombre="ciudadServicio" valor={servicio.ciudadServicio}
-            onCambio={cambiarServicio} maxLength={80} autoComplete="off"
-            ayuda="Ciudad donde se prestará el servicio. Puede ser distinta de la ciudad de residencia del cliente."
-            error={errores.ciudadServicio} />
+          {/* El departamento solo ayuda a elegir la ciudad: lo único que se guarda y se muestra es la ciudad */}
+          <CamposUbicacion
+            datos={servicio} errores={errores} onCambio={cambiarServicio}
+            nombreDepartamento="departamentoServicio" nombreCiudad="ciudadServicio"
+            etiquetaDepartamento="Departamento del servicio" etiquetaCiudad="Ciudad del servicio"
+            ayudaCiudad="Ciudad donde se prestará el servicio. Puede ser distinta de la ciudad de residencia del cliente."
+          />
           <Campo etiqueta="Diagnóstico" nombre="diagnostico" multilinea valor={servicio.diagnostico}
             onCambio={cambiarServicio} maxLength={LIMITE_DIAGNOSTICO}
             ayuda={`${numero(servicio.diagnostico.length)} de ${numero(LIMITE_DIAGNOSTICO)} caracteres`}

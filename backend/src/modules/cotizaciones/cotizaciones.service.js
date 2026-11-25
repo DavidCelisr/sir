@@ -244,24 +244,15 @@ export async function crearCotizacion({ empresaId, usuarioId }, { cliente: datos
 
 // ---------- Enviar ----------
 
-// Envía la cotización por correo (simulado en la consola, como los demás correos). Se puede hacer en
-// cualquier momento y NO deja registro: la cotización no tiene estados.
-//  - CLIENTE: al correo del cliente guardado en la cotización.
-//  - MI_CORREO: al correo del usuario que realiza la acción (no al del representante legal). Sirve
-//    cuando el cliente no tiene correo: la empresa reenvía el PDF.
-export async function enviarCotizacion({ empresaId, usuarioId }, id, { destino }) {
+// Envía la cotización por correo AL CLIENTE (simulado en la consola, como los demás correos). Se puede
+// hacer en cualquier momento y NO deja registro: la cotización no tiene estados.
+// Un cliente sin correo recibe la cotización impresa o como PDF guardado desde el navegador.
+export async function enviarCotizacion({ empresaId }, id) {
   const cotizacion = await buscar(empresaId, id);
 
-  let para;
-  if (destino === 'CLIENTE') {
-    para = cotizacion.clienteCorreo;
-    if (!para) {
-      throw new ErrorNegocio(409, 'El cliente no tiene correo registrado. Use «Enviar a mi correo» o imprima la cotización');
-    }
-  } else {
-    const usuario = await prisma.usuario.findFirst({ where: { id: usuarioId, empresaId }, select: { correo: true } });
-    para = usuario?.correo;
-    if (!para) throw new ErrorNegocio(409, 'Su usuario no tiene un correo registrado');
+  const para = cotizacion.clienteCorreo;
+  if (!para) {
+    throw new ErrorNegocio(409, 'El cliente no tiene correo registrado. Imprima la cotización o guárdela como PDF para entregársela');
   }
 
   // Nombre de la empresa para el encabezado del correo (misma regla que la sesión)
@@ -278,9 +269,7 @@ export async function enviarCotizacion({ empresaId, usuarioId }, id, { destino }
   try {
     await enviarCorreo({
       para,
-      asunto: destino === 'CLIENTE'
-        ? `Cotización ${detalle.codigo}`
-        : `Cotización ${detalle.codigo} (para reenviar al cliente)`,
+      asunto: `Cotización ${detalle.codigo}`,
       texto: textoDelCorreo(detalle, nombreEmpresa || 'SIR'),
     });
   } catch (error) {

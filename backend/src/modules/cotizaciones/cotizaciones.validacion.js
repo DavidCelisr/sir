@@ -62,14 +62,6 @@ export function validarBusquedaPiezas(query = {}) {
   return { errores, datos: { busqueda } };
 }
 
-// A quién se envía: al correo del cliente o al del usuario que realiza la acción
-export function validarDestino(body = {}) {
-  const errores = [];
-  const destino = body.destino;
-  if (destino !== 'CLIENTE' && destino !== 'MI_CORREO') errores.push('destino debe ser CLIENTE o MI_CORREO');
-  return { errores, datos: { destino } };
-}
-
 // Revisa una línea y devuelve su forma limpia. n = posición (1, 2, 3…) para los mensajes.
 function validarLinea(l, n, errores) {
   if (!l || typeof l !== 'object' || Array.isArray(l)) {

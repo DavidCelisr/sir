@@ -1,6 +1,6 @@
 import * as service from './cotizaciones.service.js';
 import {
-  validarCotizacion, validarConsulta, validarBusquedaPiezas, validarDestino, validarIdCotizacion,
+  validarCotizacion, validarConsulta, validarBusquedaPiezas, validarIdCotizacion,
 } from './cotizaciones.validacion.js';
 import { ErrorNegocio } from '../../lib/errores.js';
 
@@ -12,7 +12,7 @@ function responderError(res, error) {
   throw error;
 }
 
-// Quién actúa y de qué empresa: SIEMPRE del token firmado, nunca del cuerpo
+// Quién actúa y de qué empresa: SIEMPRE del token de autenticación. No se permite que el cliente diga otra empresa.
 const actor = (req) => ({ empresaId: req.auth.empresaId, usuarioId: req.auth.id });
 
 const ID_INVALIDO = { error: 'El id de la cotización no es válido' };
@@ -53,14 +53,13 @@ export async function ver(req, res) {
   }
 }
 
-// POST /api/portal/cotizaciones/:id/enviar : enviar por correo (simulado)
+// POST /api/portal/cotizaciones/:id/enviar : enviar por correo AL CLIENTE (simulado). No recibe cuerpo:
+// cualquier "destino" que llegue se ignora.
 export async function enviar(req, res) {
   const id = validarIdCotizacion(req.params.id);
   if (id === null) return res.status(400).json(ID_INVALIDO);
-  const { errores, datos } = validarDestino(req.body);
-  if (errores.length > 0) return res.status(400).json({ errores });
   try {
-    res.json(await service.enviarCotizacion(actor(req), id, datos));
+    res.json(await service.enviarCotizacion(actor(req), id));
   } catch (error) {
     responderError(res, error);
   }

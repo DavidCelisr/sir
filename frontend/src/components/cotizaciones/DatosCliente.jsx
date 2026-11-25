@@ -1,5 +1,6 @@
 import Campo from '../Campo.jsx'
 import { TIPOS_DOCUMENTO, etiquetaNumero } from '../../constants/tiposDocumento.js'
+import CamposUbicacion from '../CamposUbicacion.jsx'
 
 const OPCIONES_DOCUMENTO = TIPOS_DOCUMENTO.map((t) => ({ valor: t.valor, etiqueta: t.etiqueta }))
 const etiquetaTipo = (valor) => TIPOS_DOCUMENTO.find((t) => t.valor === valor)?.etiqueta ?? valor
@@ -69,12 +70,16 @@ export default function DatosCliente({
             onCambio={onCambioNuevo} maxLength={150} autoComplete="off" error={errores.nombre} />
           <Campo etiqueta="Correo electrónico" nombre="correo" tipo="email" valor={nuevo.correo}
             onCambio={onCambioNuevo} requerido={false} maxLength={120} autoComplete="off"
-            ayuda="Sin correo, la cotización se entrega impresa o con «Enviar a mi correo»."
+            ayuda="Sin correo, la cotización se entrega impresa o como PDF."
             error={errores.correo} />
           <Campo etiqueta="Teléfono o celular" nombre="telefono" tipo="tel" valor={nuevo.telefono}
             onCambio={onCambioNuevo} requerido={false} maxLength={20} autoComplete="off" error={errores.telefono} />
-          <Campo etiqueta="Ciudad de residencia" nombre="ciudad" valor={nuevo.ciudad}
-            onCambio={onCambioNuevo} requerido={false} maxLength={80} autoComplete="off" error={errores.ciudad} />
+          {/* Opcional. El departamento solo ayuda a elegir la ciudad: solo se guarda la ciudad */}
+          <CamposUbicacion
+            datos={nuevo} errores={errores} onCambio={onCambioNuevo} requerido={false}
+            nombreDepartamento="departamentoResidencia" nombreCiudad="ciudad"
+            etiquetaDepartamento="Departamento de residencia" etiquetaCiudad="Ciudad de residencia"
+          />
           <Campo etiqueta="Dirección" nombre="direccion" valor={nuevo.direccion}
             onCambio={onCambioNuevo} requerido={false} maxLength={200} autoComplete="off" error={errores.direccion} />
         </>
