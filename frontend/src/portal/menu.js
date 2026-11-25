@@ -11,6 +11,7 @@ export const MENU = [{ ruta: '/inicio', texto: 'Inicio', roles: TODOS_LOS_ROLES 
 //   Casos (todos los roles) · Cotizaciones y Clientes (Administrador y Líder) ·
 //   Facturación y métricas (solo el Administrador) · Solicitudes de piezas (se decide con su módulo)
 export const MODULOS = [
+  { ruta: '/cotizaciones', texto: 'Cotizaciones', roles: ADMIN_Y_LIDER },
   { ruta: '/inventario', texto: 'Inventario', roles: ADMIN_Y_LIDER },
 ]
 
