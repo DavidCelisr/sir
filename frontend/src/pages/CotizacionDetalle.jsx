@@ -8,8 +8,8 @@ import { pesos } from '../utils/formato.js'
 const FECHA = new Intl.DateTimeFormat('es-CO', { dateStyle: 'long' })
 const etiquetaTipo = (valor) => TIPOS_DOCUMENTO.find((t) => t.valor === valor)?.etiqueta ?? valor
 
-// Detalle de una cotización. Es la vista que se imprime: al imprimir se
-// ocultan la cabecera y los botones (clase "no-imprimir"). El texto legal y la nota del IVA
+// Detalle de una cotización. Es la vista que se imprime: al imprimir
+// se ocultan la cabecera y los botones (clase "no-imprimir") y la nota del IVA
 // vienen del backend, así la impresión y el correo muestran exactamente lo mismo.
 export default function CotizacionDetalle() {
   const { id } = useParams()
@@ -21,7 +21,7 @@ export default function CotizacionDetalle() {
   const [cotizacion, setCotizacion] = useState(null)
   const [carga, setCarga] = useState('cargando') // 'cargando' | 'listo' | 'no-existe' | 'error'
   const [version, setVersion] = useState(0)
-  const [enviando, setEnviando] = useState('') // '' | 'CLIENTE' | 'MI_CORREO'
+  const [enviando, setEnviando] = useState(false)
   const [resultadoEnvio, setResultadoEnvio] = useState(null) // { tipo: 'exito' | 'error', texto }
 
   // El aviso viaja en el estado de la navegación, que sobrevive a una recarga:
@@ -44,17 +44,27 @@ export default function CotizacionDetalle() {
     return () => { activo = false }
   }, [llamar, id, version])
 
-  // Enviar no deja registro: la cotización no tiene estados
-  async function enviar(destino) {
-    setEnviando(destino)
+  // El título de la pestaña es lo que el navegador escribe en el encabezado de la impresión y propone
+  // como nombre del archivo PDF: "SIR COT + CODIGO. Al salir de la pantalla se restaura.
+  // Debe ir antes de los "return" de más abajo: los hooks no pueden ejecutarse de forma condicional.
+  useEffect(() => {
+    if (!cotizacion) return
+    const anterior = document.title
+    document.title = `SIR ${cotizacion.codigo}`
+    return () => { document.title = anterior }
+  }, [cotizacion])
+
+  // Envía la cotización al correo del cliente (simulado). No deja registro: la cotización no tiene estados
+  async function enviar() {
+    setEnviando(true)
     setResultadoEnvio(null)
     try {
-      const respuesta = await llamar(`/api/portal/cotizaciones/${id}/enviar`, { metodo: 'POST', cuerpo: { destino } })
+      const respuesta = await llamar(`/api/portal/cotizaciones/${id}/enviar`, { metodo: 'POST' })
       setResultadoEnvio({ tipo: 'exito', texto: `Cotización enviada a ${respuesta.destino}.` })
     } catch (error) {
       setResultadoEnvio({ tipo: 'error', texto: error.message })
     } finally {
-      setEnviando('')
+      setEnviando(false)
     }
   }
 
@@ -94,16 +104,13 @@ export default function CotizacionDetalle() {
           <Link to="/cotizaciones">Volver al listado</Link>
           {/* El PDF sale de "Guardar como PDF" del diálogo de impresión del navegador */}
           <button type="button" onClick={() => window.print()}>Imprimir o guardar como PDF</button>
-          <button type="button" disabled={!tieneCorreo || enviando !== ''} onClick={() => enviar('CLIENTE')}>
-            {enviando === 'CLIENTE' ? 'Enviando…' : 'Enviar al cliente'}
-          </button>
-          <button type="button" disabled={enviando !== ''} onClick={() => enviar('MI_CORREO')}>
-            {enviando === 'MI_CORREO' ? 'Enviando…' : 'Enviar a mi correo'}
+          <button type="button" disabled={!tieneCorreo || enviando} onClick={enviar}>
+            {enviando ? 'Enviando…' : 'Enviar al cliente'}
           </button>
         </div>
 
         {!tieneCorreo && (
-          <p><small>El cliente no tiene correo registrado. Use «Enviar a mi correo» y reenvíe el PDF por WhatsApp, o imprima la cotización.</small></p>
+          <p><small>El cliente no tiene correo registrado. Imprima la cotización o guárdela como PDF para entregársela (por ejemplo, por WhatsApp).</small></p>
         )}
         {resultadoEnvio?.tipo === 'exito' && <div className="exito" role="status">{resultadoEnvio.texto}</div>}
         {resultadoEnvio?.tipo === 'error' && <div className="alerta" role="alert">{resultadoEnvio.texto}</div>}
@@ -129,6 +136,7 @@ export default function CotizacionDetalle() {
 
         <h2>Servicio</h2>
         <dl className="info-cuenta">
+          {/* Solo la ciudad: el departamento solo ayudó a elegirla y no se guarda */}
           <dt>Ciudad del servicio</dt>
           <dd>{c.ciudadServicio}</dd>
         </dl>

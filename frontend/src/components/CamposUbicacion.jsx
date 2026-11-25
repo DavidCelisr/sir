@@ -5,18 +5,29 @@ import colombia from '../data/colombia.json'
 const DEPARTAMENTOS = colombia.map((d) => ({ valor: d.departamento, etiqueta: d.departamento }))
 
 // Dos listas dependientes: el municipio depende del departamento elegido.
-// Los nombres de los campos (departamento, ciudad) coinciden con el objeto 'datos'.
-export default function CamposUbicacion({ datos, errores, onCambio }) {
-  const seleccionado = colombia.find((d) => d.departamento === datos.departamento)
+// Por defecto los campos se llaman "departamento" y "ciudad" (como en el registro de la empresa).
+// Si en la misma pantalla hay otro par de campos, se pasan otros nombres:
+//   nombreDepartamento / nombreCiudad  -> claves en el objeto 'datos' (y ids "campo-" + nombre)
+// 'requerido' indica si los campos son obligatorios (por defecto sí; si no, dicen "(opcional)").
+// El departamento SOLO ayuda a elegir la ciudad: quien usa este componente decide qué guarda.
+export default function CamposUbicacion({
+  datos, errores, onCambio,
+  nombreDepartamento = 'departamento', nombreCiudad = 'ciudad',
+  etiquetaDepartamento = 'Departamento', etiquetaCiudad = 'Ciudad o municipio',
+  ayudaCiudad, requerido = true,
+}) {
+  const departamento = datos[nombreDepartamento]
+  const seleccionado = colombia.find((d) => d.departamento === departamento)
   const municipios = (seleccionado?.municipios ?? []).map((m) => ({ valor: m, etiqueta: m }))
 
   return (
     <>
-      <Campo etiqueta="Departamento" nombre="departamento" valor={datos.departamento}
-        onCambio={onCambio} opciones={DEPARTAMENTOS} error={errores.departamento} />
+      <Campo etiqueta={etiquetaDepartamento} nombre={nombreDepartamento} valor={departamento}
+        onCambio={onCambio} opciones={DEPARTAMENTOS} requerido={requerido} error={errores[nombreDepartamento]} />
       {/* Desactivada hasta elegir departamento: sin él no hay municipios que mostrar */}
-      <Campo etiqueta="Ciudad o municipio" nombre="ciudad" valor={datos.ciudad}
-        onCambio={onCambio} opciones={municipios} disabled={!seleccionado} error={errores.ciudad} />
+      <Campo etiqueta={etiquetaCiudad} nombre={nombreCiudad} valor={datos[nombreCiudad]}
+        onCambio={onCambio} opciones={municipios} disabled={!seleccionado} requerido={requerido}
+        ayuda={ayudaCiudad} error={errores[nombreCiudad]} />
     </>
   )
 }
