@@ -10,7 +10,8 @@ const { Prisma } = prismaClient;
 const MSG_NO_ENCONTRADA = 'Cotización no encontrada';
 const INCLUIR_LINEAS = { lineas: { orderBy: { orden: 'asc' } } };
 
-// Lo que se ve en el listado
+// Lo que se ve en el listado. La sede sale de la COPIA guardada en la cotización, no de la sede actual.
+// Las cotizaciones anteriores a las sedes no la tienen: sede es null.
 const aResumen = (c) => ({
   id: c.id,
   numero: c.numero,
@@ -18,11 +19,13 @@ const aResumen = (c) => ({
   fecha: c.creadaEn,
   cliente: c.clienteNombre,
   documento: c.clienteNumeroDocumento,
+  sede: c.sedeNombre ? `${c.sedeNombre} · ${c.sedeCiudad}` : null,
   total: c.total.toString(), // los importes viajan como TEXTO para no perder exactitud
   creadaPor: c.creadaPorNombre,
 });
 
 // Detalle completo: es lo que se imprime y lo que se envía por correo. Incluye los textos fijos.
+// NO consulta la sede: muestra la fotografía que la cotización guardó al crearse.
 const aDetalle = (c) => ({
   id: c.id,
   numero: c.numero,
@@ -40,6 +43,17 @@ const aDetalle = (c) => ({
     ciudad: c.clienteCiudad, // ciudad de residencia
     direccion: c.clienteDireccion,
   },
+  // Fotografía de la sede de servicio al crear la cotización. null en las cotizaciones anteriores a las sedes,
+  // que conservan su "ciudadServicio" escrita (son inmutables).
+  sede: c.sedeId === null
+    ? null
+    : {
+        id: c.sedeId, // identificador histórico: sigue valiendo aunque la sede se elimine
+        nombre: c.sedeNombre,
+        direccion: c.sedeDireccion,
+        departamento: c.sedeDepartamento,
+        ciudad: c.sedeCiudad,
+      },
   ciudadServicio: c.ciudadServicio,
   diagnostico: c.diagnostico,
   lineas: c.lineas.map((l) => ({
@@ -80,8 +94,9 @@ async function siguienteNumero(tx, empresaId) {
 // ---------- Consulta ----------
 
 // Lista las cotizaciones de la empresa (las más recientes primero), con búsqueda por número, nombre o
-// documento del cliente. El Administrador y el Técnico Líder ven TODAS las de la empresa.
-export async function listarCotizaciones({ empresaId }, { busqueda, pagina }) {
+// documento del cliente y filtro opcional por sede (por identificador). El Administrador y el
+// Técnico Líder ven TODAS las de la empresa; el filtro es otra forma de consultar, no una restricción.
+export async function listarCotizaciones({ empresaId }, { busqueda, pagina, sedeId }) {
   const documento = normalizarDocumento(busqueda); // "1.012.345" encuentra "1012345678"
   // "COT-000123", "cot123", "123" y "000123" son el mismo número
   const coincidencia = /^(?:COT-?)?0*(\d{1,9})$/i.exec(busqueda);
@@ -89,7 +104,8 @@ export async function listarCotizaciones({ empresaId }, { busqueda, pagina }) {
 
   const where = {
     empresaId,
-    // La búsqueda solo se agrega si llegó: con "undefined" Prisma ignoraría la condición
+    // Cada condición opcional solo se agrega si llegó: con "undefined" Prisma ignoraría la condición
+    ...(sedeId ? { sedeId } : {}),
     ...(busqueda
       ? {
           OR: [
@@ -150,16 +166,21 @@ export async function listarPiezasParaCotizar({ empresaId }, { busqueda }) {
 
 // Crea la cotización. Todo ocurre en UNA transacción: si algo falla, no se crea el
 // cliente, no se consume el número y no queda nada a medias. empresaId y usuarioId vienen del token.
-export async function crearCotizacion({ empresaId, usuarioId }, { cliente: datosCliente, ciudadServicio, diagnostico, lineas }) {
+export async function crearCotizacion({ empresaId, usuarioId }, { cliente: datosCliente, sedeId, diagnostico, lineas }) {
   const { cotizacion, clienteNuevo } = await prisma.$transaction(async (tx) => {
-    // 1. Piezas del inventario activo de ESTA empresa
+    // 1. La sede: debe ser una sede ACTIVA de ESTA empresa. Si no existe, es de otra empresa o ya fue
+    //    eliminada, no se puede elegir: se pide elegir otra.
+    const sede = await tx.sede.findFirst({ where: { id: sedeId, empresaId, activo: true } });
+    if (!sede) throw new ErrorNegocio(409, 'La sede elegida ya no está disponible (no existe o fue eliminada). Elija otra sede');
+
+    // 2. Piezas del inventario activo de ESTA empresa
     const idsPiezas = [...new Set(lineas.filter((l) => l.tipo === 'PIEZA').map((l) => l.piezaId))];
     const piezas = idsPiezas.length > 0
       ? await tx.pieza.findMany({ where: { id: { in: idsPiezas }, empresaId, activo: true } })
       : [];
     const piezaPorId = new Map(piezas.map((p) => [p.id, p]));
 
-    // 2. Las líneas, con el precio y el nombre COPIADOS ahora, y el total con precisión exacta
+    // 3. Las líneas, con el precio y el nombre COPIADOS ahora, y el total con precisión exacta
     let total = new Prisma.Decimal(0);
     const lineasCopiadas = lineas.map((l, i) => {
       let codigo = null;
@@ -194,8 +215,8 @@ export async function crearCotizacion({ empresaId, usuarioId }, { cliente: datos
       };
     });
 
-    // 3. El cliente: se obtiene o se crea. Si ya existe, se usan SUS datos almacenados y se
-    //    ignoran los del cuerpo (decisión 5, opción B): las correcciones se hacen desde el detalle de un caso.
+    // 4. El cliente: se obtiene o se crea. Si ya existe, se usan SUS datos almacenados y se
+    //    ignoran los del cuerpo: las correcciones se hacen desde el detalle de un caso.
     const clave = {
       empresaId_tipoDocumento_numeroDocumento: {
         empresaId, tipoDocumento: datosCliente.tipoDocumento, numeroDocumento: datosCliente.numeroDocumento,
@@ -212,10 +233,10 @@ export async function crearCotizacion({ empresaId, usuarioId }, { cliente: datos
       cliente = await tx.cliente.findUnique({ where: clave });
     }
 
-    // 4. El número, lo más tarde posible: la fila del contador queda bloqueada hasta confirmar la transacción
+    // 5. El número, lo más tarde posible: la fila del contador queda bloqueada hasta confirmar la transacción
     const numero = await siguienteNumero(tx, empresaId);
 
-    // 5. Quién la crea, con su nombre de ESTE momento
+    // 6. Quién la crea, con su nombre de ESTE momento
     const usuario = await tx.usuario.findFirst({ where: { id: usuarioId, empresaId }, select: { nombre: true } });
 
     const creada = await tx.cotizacion.create({
@@ -231,7 +252,14 @@ export async function crearCotizacion({ empresaId, usuarioId }, { cliente: datos
         clienteDepartamento: cliente.departamento,
         clienteCiudad: cliente.ciudad,
         clienteDireccion: cliente.direccion,
-        ciudadServicio, diagnostico, total,
+        // La sede: su identificador histórico y la FOTOGRAFÍA de sus datos de este momento. Si la
+        // empresa cambia después la dirección de la sede, esta cotización conserva la que tenía.
+        sedeId: sede.id,
+        sedeNombre: sede.nombre,
+        sedeDireccion: sede.direccion,
+        sedeDepartamento: sede.departamento,
+        sedeCiudad: sede.ciudad,
+        diagnostico, total,
         creadaPorId: usuarioId,
         creadaPorNombre: usuario?.nombre ?? 'Usuario desconocido',
         lineas: { create: lineasCopiadas },

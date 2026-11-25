@@ -250,9 +250,19 @@ model Cotizacion {
   clienteCiudad          String? // ciudad de RESIDENCIA del cliente
   clienteDireccion       String?
 
-  ciudadServicio String // ciudad del SERVICIO: distinta de la ciudad del cliente
-  diagnostico    String
-  total          Decimal @db.Decimal(18, 2) // sin IVA
+  // la SEDE de servicio reemplaza a la ciudad del servicio. sedeId es el identificador histórico: la
+  // referencia nunca se rompe porque las sedes no se borran, solo se inactivan, y Restrict impide el
+  // borrado físico. El resto es la FOTOGRAFÍA de la sede al crear la cotización: no depende de los datos actuales.
+  sedeId           Int?
+  sede             Sede?   @relation(fields: [sedeId], references: [id], onDelete: Restrict)
+  sedeNombre       String?
+  sedeDireccion    String?
+  sedeDepartamento String?
+  sedeCiudad       String?
+  // Solo las cotizaciones ANTERIORES a las sedes la conservan (son inmutables). Las nuevas la dejan vacía.
+  ciudadServicio   String?
+  diagnostico      String
+  total            Decimal @db.Decimal(18, 2) // sin IVA
 
   creadaPorId     Int
   creadaPor       Usuario  @relation(fields: [creadaPorId], references: [id])
@@ -263,6 +273,7 @@ model Cotizacion {
 
   @@unique([empresaId, numero])
   @@index([empresaId, creadaEn])
+  @@index([empresaId, sedeId])
   @@index([clienteId])
 }
 
@@ -299,6 +310,8 @@ model Sede {
   esPrincipal  Boolean  @default(false) // una sola por empresa y siempre activa (índice y CHECK en la migración)
   activo       Boolean  @default(true) // false = sede eliminada (inactivación lógica)
   creadaEn     DateTime @default(now())
+
+  cotizaciones Cotizacion[]
 
   @@index([empresaId])
 }

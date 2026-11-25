@@ -137,9 +137,22 @@ export default function CotizacionDetalle() {
 
         <h2>Servicio</h2>
         <dl className="info-cuenta">
-          {/* Solo la ciudad: el departamento solo ayudó a elegirla y no se guarda */}
-          <dt>Ciudad del servicio</dt>
-          <dd>{c.ciudadServicio}</dd>
+          {c.sede ? (
+            <>
+              {/* La fotografía de la sede al crear la cotización: no cambia si la sede se edita o se elimina */}
+              <dt>Sede de servicio</dt>
+              <dd>{c.sede.nombre} · {c.sede.ciudad}</dd>
+              {c.sede.direccion && (<><dt>Dirección de la sede</dt><dd>{c.sede.direccion}</dd></>)}
+              <dt>Departamento de la sede</dt>
+              <dd>{c.sede.departamento}</dd>
+            </>
+          ) : (
+            <>
+              {/* Cotizaciones anteriores a las sedes: conservan la ciudad escrita, porque no se modifican */}
+              <dt>Ciudad del servicio</dt>
+              <dd>{c.ciudadServicio}</dd>
+            </>
+          )}
         </dl>
 
         <h2>Diagnóstico</h2>

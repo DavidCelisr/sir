@@ -36,7 +36,8 @@ export function validarIdCotizacion(valor) {
   return /^\d+$/.test(valor) && id > 0 && id <= 2147483647 ? id : null;
 }
 
-// Listado: la búsqueda es opcional (por número, nombre o documento del cliente); la página, desde 1
+// Listado: la búsqueda y el filtro por sede son opcionales (por número, nombre o documento del cliente); la
+// página, desde 1. El filtro por sede es por IDENTIFICADOR: un renombre de la sede no la divide en dos.
 export function validarConsulta(query = {}) {
   const errores = [];
 
@@ -51,7 +52,14 @@ export function validarConsulta(query = {}) {
       errores.push('pagina debe ser un entero mayor o igual a 1');
     }
   }
-  return { errores, datos: { busqueda, pagina } };
+
+  let sedeId = null;
+  if (query.sedeId !== undefined && query.sedeId !== '') {
+    sedeId = typeof query.sedeId === 'string' && /^\d+$/.test(query.sedeId) ? Number(query.sedeId) : NaN;
+    if (!Number.isInteger(sedeId) || sedeId < 1 || sedeId > 2147483647) errores.push('sedeId no es válido');
+  }
+
+  return { errores, datos: { busqueda, pagina, sedeId } };
 }
 
 // Búsqueda de piezas para armar la cotización (nombre o código)
@@ -99,14 +107,11 @@ function validarLinea(l, n, errores) {
   return null;
 }
 
-// Crea la cotización: el servidor determina empresaId, número, total y creador
-// Solo valida el formato de los datos del cliente; si ya existe, utiliza los datos almacenados
+// Crear cotización: empresaId, numero, total y creador los determina el servidor. Solo se valida el
+// formato del cliente; si ya existe, se usan sus datos almacenados. La sede se identifica por sedeId.
 export function validarCotizacion(body = {}) {
   const errores = [];
-
-  const c = body.cliente && typeof body.cliente === 'object' && !Array.isArray(body.cliente)
-    ? body.cliente
-    : {};
+  const c = body.cliente && typeof body.cliente === 'object' && !Array.isArray(body.cliente) ? body.cliente : {};
 
   const cliente = {
     tipoDocumento: c.tipoDocumento,
@@ -114,60 +119,28 @@ export function validarCotizacion(body = {}) {
     nombre: limpio(c.nombre) || null,
     correo: texto(c.correo) || null,
     telefono: limpio(c.telefono) || null,
-    departamento: limpio(c.departamento) || null, // Departamento de residencia del cliente
-    ciudad: limpio(c.ciudad) || null, // Ciudad de residencia del cliente
+    departamento: limpio(c.departamento) || null, // departamento de RESIDENCIA del cliente
+    ciudad: limpio(c.ciudad) || null, // ciudad de RESIDENCIA del cliente
     direccion: limpio(c.direccion) || null,
   };
 
-  // Datos del cliente
-  if (typeof cliente.tipoDocumento !== 'string' || !TIPOS_DOCUMENTO.includes(cliente.tipoDocumento)) {
-    errores.push('cliente.tipoDocumento no es un tipo de documento válido');
-  }
-
-  if (!DOCUMENTO_VALIDO.test(cliente.numeroDocumento)) {
-    errores.push(`cliente.numeroDocumento ${MSG_DOCUMENTO}`);
-  }
-
-  if (cliente.nombre && cliente.nombre.length > 150) {
-    errores.push('cliente.nombre no puede pasar de 150 caracteres');
-  }
-
-  if (cliente.correo && (cliente.correo.length > 120 || !correoValido(cliente.correo))) {
-    errores.push('cliente.correo no tiene un formato válido');
-  }
-
-  if (cliente.telefono && !/^[0-9+()\s-]{7,20}$/.test(cliente.telefono)) {
-    errores.push('cliente.telefono no tiene un formato válido');
-  }
-
+  if (!TIPOS_DOCUMENTO.includes(cliente.tipoDocumento)) errores.push('cliente.tipoDocumento no es un tipo de documento válido');
+  if (!DOCUMENTO_VALIDO.test(cliente.numeroDocumento)) errores.push(`cliente.numeroDocumento ${MSG_DOCUMENTO}`);
+  if (cliente.nombre && cliente.nombre.length > 150) errores.push('cliente.nombre no puede pasar de 150 caracteres');
+  if (cliente.correo && (cliente.correo.length > 120 || !correoValido(cliente.correo))) errores.push('cliente.correo no tiene un formato válido');
+  if (cliente.telefono && !/^[0-9+()\s-]{7,20}$/.test(cliente.telefono)) errores.push('cliente.telefono no tiene un formato válido');
   const errorSitio = errorUbicacion(cliente.departamento, cliente.ciudad, 'cliente');
   if (errorSitio) errores.push(errorSitio);
+  if (cliente.direccion && cliente.direccion.length > 200) errores.push('cliente.direccion no puede pasar de 200 caracteres');
 
-  if (cliente.direccion && cliente.direccion.length > 200) {
-    errores.push('cliente.direccion no puede pasar de 200 caracteres');
-  }
+  const sedeId = entero(body.sedeId); // sede de servicio 
+  if (!Number.isInteger(sedeId) || sedeId < 1 || sedeId > 2147483647) errores.push('sedeId es obligatorio y debe ser el id de una sede');
 
-  // Ciudad donde se presta el servicio
-  const ciudadServicio = limpio(body.ciudadServicio);
+  const diagnostico = texto(body.diagnostico); // se conservan los saltos de línea
+  if (!diagnostico) errores.push('diagnostico es obligatorio');
+  else if (diagnostico.length > 2000) errores.push('diagnostico no puede pasar de 2000 caracteres');
 
-  if (!ciudadServicio) {
-    errores.push('ciudadServicio es obligatoria');
-  } else if (ciudadServicio.length > 80) {
-    errores.push('ciudadServicio no puede pasar de 80 caracteres');
-  }
-
-  // Diagnóstico: se conservan los saltos de línea
-  const diagnostico = texto(body.diagnostico);
-
-  if (!diagnostico) {
-    errores.push('diagnostico es obligatorio');
-  } else if (diagnostico.length > 2000) {
-    errores.push('diagnostico no puede pasar de 2000 caracteres');
-  }
-
-  // Piezas y servicios
   let lineas = [];
-
   if (!Array.isArray(body.lineas) || body.lineas.length === 0) {
     errores.push('lineas debe incluir al menos una pieza o un servicio');
   } else if (body.lineas.length > LIMITE_LINEAS) {
@@ -176,13 +149,5 @@ export function validarCotizacion(body = {}) {
     lineas = body.lineas.map((l, i) => validarLinea(l, i + 1, errores));
   }
 
-  return {
-    errores,
-    datos: {
-      cliente,
-      ciudadServicio,
-      diagnostico,
-      lineas,
-    },
-  };
+  return { errores, datos: { cliente, sedeId, diagnostico, lineas } };
 }
