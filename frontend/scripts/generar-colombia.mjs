@@ -52,5 +52,7 @@ await mkdir('src/data', { recursive: true })
 await writeFile('src/data/colombia.json', JSON.stringify(resultado, null, 2))
 
 const total = resultado.reduce((suma, d) => suma + d.municipios.length, 0)
+await mkdir('../backend/src/data', { recursive: true })
+await writeFile('../backend/src/data/colombia.json', JSON.stringify(resultado, null, 2))
 console.log(`${resultado.length} departamentos y ${total} municipios guardados en src/data/colombia.json`)
 console.log('Ejemplo:', resultado[0].departamento, '→', resultado[0].municipios.slice(0, 3).join(', '))

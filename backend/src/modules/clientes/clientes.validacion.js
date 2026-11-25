@@ -1,5 +1,6 @@
 import prismaClient from '@prisma/client';
 import { normalizarDocumento, DOCUMENTO_VALIDO, MSG_DOCUMENTO } from '../../lib/documentos.js';
+import { errorUbicacion } from '../../lib/ubicacion.js';
 
 const { TipoDocumento } = prismaClient;
 const TIPOS = Object.values(TipoDocumento);
@@ -48,8 +49,9 @@ export function validarDocumentoConsulta(query = {}) {
   return { errores, datos: { tipoDocumento, numeroDocumento } };
 }
 
-// Corrección de los datos de un cliente. Aquí NO se lee empresaId: se ignora a propósito.
-// Reemplaza todos los datos: los opcionales que lleguen vacíos se guardan como nulos.
+// Actualiza los datos del cliente. No se lee empresaId.
+// Reemplaza todos los datos; los campos opcionales vacíos se guardan como null.
+// Departamento y ciudad son opcionales, pero deben enviarse juntos y ser coherentes.
 export function validarCliente(body = {}) {
   const errores = [];
 
@@ -58,6 +60,7 @@ export function validarCliente(body = {}) {
   const nombre = limpio(body.nombre);
   const correo = texto(body.correo) || null;
   const telefono = limpio(body.telefono) || null;
+  const departamento = limpio(body.departamento) || null;
   const ciudad = limpio(body.ciudad) || null;
   const direccion = limpio(body.direccion) || null;
 
@@ -69,8 +72,9 @@ export function validarCliente(body = {}) {
 
   if (correo && (correo.length > 120 || !correoValido(correo))) errores.push('correo no tiene un formato válido');
   if (telefono && !/^[0-9+()\s-]{7,20}$/.test(telefono)) errores.push('telefono no tiene un formato válido');
-  if (ciudad && ciudad.length > 80) errores.push('ciudad no puede pasar de 80 caracteres');
+  const errorSitio = errorUbicacion(departamento, ciudad);
+  if (errorSitio) errores.push(errorSitio);
   if (direccion && direccion.length > 200) errores.push('direccion no puede pasar de 200 caracteres');
 
-  return { errores, datos: { tipoDocumento, numeroDocumento, nombre, correo, telefono, ciudad, direccion } };
+  return { errores, datos: { tipoDocumento, numeroDocumento, nombre, correo, telefono, departamento, ciudad, direccion } };
 }
