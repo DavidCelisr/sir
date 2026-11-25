@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router'
 import Campo from '../components/Campo.jsx'
 import DatosCliente from '../components/cotizaciones/DatosCliente.jsx'
@@ -10,10 +10,11 @@ import { LIMITE_CANTIDAD, LIMITE_DIAGNOSTICO, LIMITE_LINEAS } from '../constants
 import { DOCUMENTO_VALIDO, MSG_DOCUMENTO, normalizarDocumento } from '../utils/documento.js'
 import { cantidadValida } from '../utils/importes.js'
 import { numero } from '../utils/formato.js'
-import CamposUbicacion from '../components/CamposUbicacion.jsx'
 
 const DOCUMENTO_INICIAL = { tipoDocumento: '', numeroDocumento: '' }
-const NUEVO_INICIAL = { nombre: '', correo: '', telefono: '', departamentoResidencia: '', ciudad: '', direccion: '' } // departamentoResidencia solo sirve para elegir la ciudad: NO se envía ni se guarda
+// departamentoResidencia se envía como "departamento" junto con la ciudad, y se guardan ambos.
+// El campo interno conserva su nombre para no chocar con otros campos de la pantalla.
+const NUEVO_INICIAL = { nombre: '', correo: '', telefono: '', departamentoResidencia: '', ciudad: '', direccion: '' }
 const MSG_LIMITE_LINEAS = `Una cotización admite hasta ${LIMITE_LINEAS} líneas.`
 const OBLIGATORIO = 'Este campo es obligatorio'
 
@@ -42,8 +43,7 @@ function validar({ documento, estadoCliente, nuevo, servicio, lineas }) {
     }
   }
 
-  if (!servicio.departamentoServicio) errores.departamentoServicio = OBLIGATORIO
-  if (!servicio.ciudadServicio) errores.ciudadServicio = OBLIGATORIO
+  if (!servicio.sedeId) errores.sedeId = OBLIGATORIO
   if (!servicio.diagnostico.trim()) errores.diagnostico = OBLIGATORIO
 
   if (lineas.length === 0) {
@@ -68,8 +68,12 @@ export default function CotizacionNueva() {
   const [nuevo, setNuevo] = useState(NUEVO_INICIAL)
   const consultaCliente = useRef(0) // descarta respuestas atrasadas
 
-  // Servicio y líneas
-  const [servicio, setServicio] = useState({ departamentoServicio: '', ciudadServicio: '', diagnostico: '' })
+  // Servicio: la sede de servicio (por identificador) y el diagnóstico
+  const [servicio, setServicio] = useState({ sedeId: '', diagnostico: '' })
+  const [sedes, setSedes] = useState([])
+  const [cargaSedes, setCargaSedes] = useState('cargando') // 'cargando' | 'listo' | 'error'
+
+  // Líneas
   const [lineas, setLineas] = useState([])
   const siguienteClave = useRef(1)
 
@@ -78,6 +82,29 @@ export default function CotizacionNueva() {
   const [erroresServidor, setErroresServidor] = useState([])
   const [conflicto, setConflicto] = useState(false)
   const [enviando, setEnviando] = useState(false)
+
+  // Pide las sedes ACTIVAS. La primera vez deja preseleccionada la sede PRINCIPAL, aunque haya varias.
+  // Si se vuelve a pedir (por ejemplo, tras un conflicto), conserva la elección y solo la borra si esa sede ya
+  // no está disponible, para que nadie cotice a una sede eliminada sin darse cuenta.
+  const cargarSedes = useCallback(async (preseleccionar) => {
+    setCargaSedes('cargando')
+    try {
+      const { sedes: lista } = await llamar('/api/portal/sedes')
+      setSedes(lista)
+      setServicio((previo) => {
+        if (preseleccionar && !previo.sedeId) {
+          const principal = lista.find((s) => s.esPrincipal)
+          return principal ? { ...previo, sedeId: String(principal.id) } : previo
+        }
+        return lista.some((s) => String(s.id) === previo.sedeId) ? previo : { ...previo, sedeId: '' }
+      })
+      setCargaSedes('listo')
+    } catch {
+      setCargaSedes('error')
+    }
+  }, [llamar])
+
+  useEffect(() => { cargarSedes(true) }, [cargarSedes])
 
   // Al cambiar el documento, el cliente mostrado ya no corresponde: se invalida cualquier búsqueda
   // en curso o ya hecha, y se descartan los datos que se hubieran escrito para un cliente nuevo.
@@ -100,15 +127,7 @@ export default function CotizacionNueva() {
       ...(name === 'departamentoResidencia' ? { ciudad: '' } : {}),
     }))
   }
-  const cambiarServicio = (e) => {
-    const { name, value } = e.target
-    setServicio((previo) => ({
-      ...previo,
-      [name]: value,
-      // Al cambiar el departamento, la ciudad elegida ya no corresponde
-      ...(name === 'departamentoServicio' ? { ciudadServicio: '' } : {}),
-    }))
-  }
+  const cambiarServicio = (e) => setServicio((previo) => ({ ...previo, [e.target.name]: e.target.value }))
 
   // Recupera al cliente por documento (GET /api/portal/clientes/por-documento).
   // Un 404 NO es un error: significa que es un cliente nuevo.
@@ -207,7 +226,7 @@ export default function CotizacionNueva() {
         metodo: 'POST',
         cuerpo: {
           cliente,
-          ciudadServicio: servicio.ciudadServicio,
+          sedeId: Number(servicio.sedeId), // la sede viaja por su identificador; el servidor guarda la fotografía
           diagnostico: servicio.diagnostico,
           lineas: lineas.map((l) => (l.tipo === 'PIEZA'
             ? { tipo: 'PIEZA', piezaId: l.piezaId, cantidad: Number(l.cantidad), precioUnitario: l.precioUnitario }
@@ -219,15 +238,22 @@ export default function CotizacionNueva() {
         state: { aviso: `La cotización ${creada.codigo} fue creada.${creada.clienteNuevo ? ' El cliente fue registrado.' : ''}` },
       })
     } catch (error) {
-      // 409: el precio de una pieza cambió o la pieza ya no está disponible. Lo escrito se conserva.
+      // 409: el precio de una pieza cambió, una pieza ya no está disponible o la sede fue eliminada.
+      // Lo escrito se conserva; las sedes se vuelven a pedir para no dejar elegida una que ya no existe.
       setErroresServidor(error.errores?.length > 0 ? error.errores : [error.message])
       setConflicto(error.estado === 409)
+      if (error.estado === 409) cargarSedes(false)
     } finally {
       setEnviando(false)
     }
   }
 
   const hayErrores = Object.keys(errores).length > 0
+  const opcionesSede = sedes.map((s) => ({
+    valor: String(s.id),
+    etiqueta: `${s.nombre} · ${s.ciudad}${s.esPrincipal ? ' (principal)' : ''}`,
+  }))
+  const sedeElegida = sedes.find((s) => String(s.id) === servicio.sedeId)
 
   return (
     <section>
@@ -244,13 +270,21 @@ export default function CotizacionNueva() {
 
         <section className="bloque" aria-labelledby="titulo-servicio">
           <h2 id="titulo-servicio">Servicio</h2>
-          {/* departamentoResidencia se envía como "departamento" junto con la ciudad, y se guarda ambos */}
-          <CamposUbicacion
-            datos={servicio} errores={errores} onCambio={cambiarServicio}
-            nombreDepartamento="departamentoServicio" nombreCiudad="ciudadServicio"
-            etiquetaDepartamento="Departamento del servicio" etiquetaCiudad="Ciudad del servicio"
-            ayudaCiudad="Ciudad donde se prestará el servicio. Puede ser distinta de la ciudad de residencia del cliente."
-          />
+
+          {cargaSedes === 'error' ? (
+            <div className="alerta" role="alert">
+              No se pudieron cargar las sedes. <button type="button" onClick={() => cargarSedes(true)}>Reintentar</button>
+            </div>
+          ) : (
+            // La sede de servicio reemplaza a la «ciudad del servicio». Viene preseleccionada la sede principal.
+            <Campo etiqueta="Sede de servicio" nombre="sedeId" valor={servicio.sedeId} onCambio={cambiarServicio}
+              opciones={opcionesSede} disabled={cargaSedes === 'cargando'}
+              ayuda={sedeElegida
+                ? `Dirección: ${sedeElegida.direccion ?? 'No registrada'} · Departamento: ${sedeElegida.departamento}`
+                : 'Sede a la que corresponde el servicio.'}
+              error={errores.sedeId} />
+          )}
+
           <Campo etiqueta="Diagnóstico" nombre="diagnostico" multilinea valor={servicio.diagnostico}
             onCambio={cambiarServicio} maxLength={LIMITE_DIAGNOSTICO}
             ayuda={`${numero(servicio.diagnostico.length)} de ${numero(LIMITE_DIAGNOSTICO)} caracteres`}
@@ -276,7 +310,7 @@ export default function CotizacionNueva() {
           </div>
         )}
         {conflicto && (
-          <p>Quite la línea afectada y vuelva a agregarla desde el buscador para ver el valor vigente.</p>
+          <p>Revise lo indicado: si cambió el valor de una pieza, quite la línea y vuelva a agregarla desde el buscador; si la sede ya no está disponible, elija otra.</p>
         )}
 
         <div className="acciones">

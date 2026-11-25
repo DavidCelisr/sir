@@ -36,6 +36,15 @@ export function textoDelCorreo(c, nombreEmpresa) {
       : `- ${l.descripcion}: ${pesos(l.subtotal)}`,
   );
 
+  // La sede sale de la fotografía de la cotización. Las cotizaciones anteriores traen la ciudad escrita.
+  const lugar = c.sede
+    ? [
+        `Sede de servicio: ${c.sede.nombre} · ${c.sede.ciudad}`,
+        ...(c.sede.direccion ? [`Dirección de la sede: ${c.sede.direccion}`] : []),
+        `Departamento de la sede: ${c.sede.departamento}`,
+      ]
+    : [`Ciudad del servicio: ${c.ciudadServicio}`];
+
   return [
     nombreEmpresa,
     `Cotización ${c.codigo}`,
@@ -43,7 +52,7 @@ export function textoDelCorreo(c, nombreEmpresa) {
     '',
     `Cliente: ${c.cliente.nombre}`,
     `Documento: ${c.cliente.numeroDocumento}`,
-    `Ciudad del servicio: ${c.ciudadServicio}`,
+    ...lugar,
     '',
     'Diagnóstico:',
     c.diagnostico,
