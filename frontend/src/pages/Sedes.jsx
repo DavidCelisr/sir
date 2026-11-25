@@ -81,7 +81,7 @@ export default function Sedes() {
 
   return (
     <section>
-      <h1>Sedes</h1>
+      <h1>Gestión de sedes</h1>
       <p>Las sedes identifican a qué ubicación corresponde cada cotización y cada caso.</p>
 
       {aviso && <div className="exito" role="status">{aviso}</div>}
