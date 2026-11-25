@@ -14,7 +14,7 @@ const aResumen = (c) => ({
 // Datos personales y de contacto de la ficha. Los historiales de casos y de cotizaciones
 // se agregarán cuando existan esos módulos; el de cotizaciones solo para el Administrador y el Líder.
 const aFicha = (c) => ({
-  ...aResumen(c), correo: c.correo, telefono: c.telefono, ciudad: c.ciudad, direccion: c.direccion,
+  ...aResumen(c), correo: c.correo, telefono: c.telefono, departamento: c.departamento, ciudad: c.ciudad, direccion: c.direccion,
 });
 
 // Busca clientes de la empresa por nombre o por documento (los tres roles).

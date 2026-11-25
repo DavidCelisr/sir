@@ -36,6 +36,7 @@ const aDetalle = (c) => ({
     nombre: c.clienteNombre,
     correo: c.clienteCorreo,
     telefono: c.clienteTelefono,
+    departamento: c.clienteDepartamento, // departamento de residencia
     ciudad: c.clienteCiudad, // ciudad de residencia
     direccion: c.clienteDireccion,
   },
@@ -227,6 +228,7 @@ export async function crearCotizacion({ empresaId, usuarioId }, { cliente: datos
         clienteNombre: cliente.nombre,
         clienteCorreo: cliente.correo,
         clienteTelefono: cliente.telefono,
+        clienteDepartamento: cliente.departamento,
         clienteCiudad: cliente.ciudad,
         clienteDireccion: cliente.direccion,
         ciudadServicio, diagnostico, total,

@@ -130,6 +130,7 @@ export default function CotizacionDetalle() {
           {/* Solo se muestran los datos que el cliente tiene registrados */}
           {c.cliente.correo && (<><dt>Correo</dt><dd>{c.cliente.correo}</dd></>)}
           {c.cliente.telefono && (<><dt>Teléfono</dt><dd>{c.cliente.telefono}</dd></>)}
+          {c.cliente.departamento && (<><dt>Departamento de residencia</dt><dd>{c.cliente.departamento}</dd></>)}
           {c.cliente.ciudad && (<><dt>Ciudad de residencia</dt><dd>{c.cliente.ciudad}</dd></>)}
           {c.cliente.direccion && (<><dt>Dirección</dt><dd>{c.cliente.direccion}</dd></>)}
         </dl>

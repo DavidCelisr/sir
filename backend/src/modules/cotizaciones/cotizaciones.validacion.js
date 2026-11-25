@@ -1,5 +1,6 @@
 import prismaClient from '@prisma/client';
 import { normalizarDocumento, DOCUMENTO_VALIDO, MSG_DOCUMENTO } from '../../lib/documentos.js';
+import { errorUbicacion } from '../../lib/ubicacion.js';
 
 const { TipoDocumento } = prismaClient;
 const TIPOS_DOCUMENTO = Object.values(TipoDocumento);
@@ -102,7 +103,10 @@ function validarLinea(l, n, errores) {
 // Solo valida el formato de los datos del cliente; si ya existe, utiliza los datos almacenados
 export function validarCotizacion(body = {}) {
   const errores = [];
-  const c = body.cliente && typeof body.cliente === 'object' && !Array.isArray(body.cliente) ? body.cliente : {};
+
+  const c = body.cliente && typeof body.cliente === 'object' && !Array.isArray(body.cliente)
+    ? body.cliente
+    : {};
 
   const cliente = {
     tipoDocumento: c.tipoDocumento,
@@ -110,27 +114,60 @@ export function validarCotizacion(body = {}) {
     nombre: limpio(c.nombre) || null,
     correo: texto(c.correo) || null,
     telefono: limpio(c.telefono) || null,
-    ciudad: limpio(c.ciudad) || null, // ciudad de RESIDENCIA del cliente
+    departamento: limpio(c.departamento) || null, // Departamento de residencia del cliente
+    ciudad: limpio(c.ciudad) || null, // Ciudad de residencia del cliente
     direccion: limpio(c.direccion) || null,
   };
 
-  if (!TIPOS_DOCUMENTO.includes(cliente.tipoDocumento)) errores.push('cliente.tipoDocumento no es un tipo de documento válido');
-  if (!DOCUMENTO_VALIDO.test(cliente.numeroDocumento)) errores.push(`cliente.numeroDocumento ${MSG_DOCUMENTO}`);
-  if (cliente.nombre && cliente.nombre.length > 150) errores.push('cliente.nombre no puede pasar de 150 caracteres');
-  if (cliente.correo && (cliente.correo.length > 120 || !correoValido(cliente.correo))) errores.push('cliente.correo no tiene un formato válido');
-  if (cliente.telefono && !/^[0-9+()\s-]{7,20}$/.test(cliente.telefono)) errores.push('cliente.telefono no tiene un formato válido');
-  if (cliente.ciudad && cliente.ciudad.length > 80) errores.push('cliente.ciudad no puede pasar de 80 caracteres');
-  if (cliente.direccion && cliente.direccion.length > 200) errores.push('cliente.direccion no puede pasar de 200 caracteres');
+  // Datos del cliente
+  if (typeof cliente.tipoDocumento !== 'string' || !TIPOS_DOCUMENTO.includes(cliente.tipoDocumento)) {
+    errores.push('cliente.tipoDocumento no es un tipo de documento válido');
+  }
 
-  const ciudadServicio = limpio(body.ciudadServicio); // ciudad del SERVICIO
-  if (!ciudadServicio) errores.push('ciudadServicio es obligatoria');
-  else if (ciudadServicio.length > 80) errores.push('ciudadServicio no puede pasar de 80 caracteres');
+  if (!DOCUMENTO_VALIDO.test(cliente.numeroDocumento)) {
+    errores.push(`cliente.numeroDocumento ${MSG_DOCUMENTO}`);
+  }
 
-  const diagnostico = texto(body.diagnostico); // se conservan los saltos de línea
-  if (!diagnostico) errores.push('diagnostico es obligatorio');
-  else if (diagnostico.length > 2000) errores.push('diagnostico no puede pasar de 2000 caracteres');
+  if (cliente.nombre && cliente.nombre.length > 150) {
+    errores.push('cliente.nombre no puede pasar de 150 caracteres');
+  }
 
+  if (cliente.correo && (cliente.correo.length > 120 || !correoValido(cliente.correo))) {
+    errores.push('cliente.correo no tiene un formato válido');
+  }
+
+  if (cliente.telefono && !/^[0-9+()\s-]{7,20}$/.test(cliente.telefono)) {
+    errores.push('cliente.telefono no tiene un formato válido');
+  }
+
+  const errorSitio = errorUbicacion(cliente.departamento, cliente.ciudad, 'cliente');
+  if (errorSitio) errores.push(errorSitio);
+
+  if (cliente.direccion && cliente.direccion.length > 200) {
+    errores.push('cliente.direccion no puede pasar de 200 caracteres');
+  }
+
+  // Ciudad donde se presta el servicio
+  const ciudadServicio = limpio(body.ciudadServicio);
+
+  if (!ciudadServicio) {
+    errores.push('ciudadServicio es obligatoria');
+  } else if (ciudadServicio.length > 80) {
+    errores.push('ciudadServicio no puede pasar de 80 caracteres');
+  }
+
+  // Diagnóstico: se conservan los saltos de línea
+  const diagnostico = texto(body.diagnostico);
+
+  if (!diagnostico) {
+    errores.push('diagnostico es obligatorio');
+  } else if (diagnostico.length > 2000) {
+    errores.push('diagnostico no puede pasar de 2000 caracteres');
+  }
+
+  // Piezas y servicios
   let lineas = [];
+
   if (!Array.isArray(body.lineas) || body.lineas.length === 0) {
     errores.push('lineas debe incluir al menos una pieza o un servicio');
   } else if (body.lineas.length > LIMITE_LINEAS) {
@@ -139,5 +176,13 @@ export function validarCotizacion(body = {}) {
     lineas = body.lineas.map((l, i) => validarLinea(l, i + 1, errores));
   }
 
-  return { errores, datos: { cliente, ciudadServicio, diagnostico, lineas } };
+  return {
+    errores,
+    datos: {
+      cliente,
+      ciudadServicio,
+      diagnostico,
+      lineas,
+    },
+  };
 }

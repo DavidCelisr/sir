@@ -203,6 +203,7 @@ model Cliente {
   nombre          String // nombre completo o razón social
   correo          String?
   telefono        String?
+  departamento    String? // opcional; si se diligencia, la ciudad también
   ciudad          String?
   direccion       String?
   creadoEn        DateTime      @default(now())
@@ -244,6 +245,7 @@ model Cotizacion {
   clienteNombre          String
   clienteCorreo          String?
   clienteTelefono        String?
+  clienteDepartamento    String? // departamento de RESIDENCIA del cliente, copiado al crear la cotización
   clienteCiudad          String? // ciudad de RESIDENCIA del cliente
   clienteDireccion       String?
 

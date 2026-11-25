@@ -193,10 +193,10 @@ export default function CotizacionNueva() {
       : {
           tipoDocumento: documento.tipoDocumento,
           numeroDocumento: numeroDoc,
-          // El departamento de residencia NO viaja: solo ayudó a elegir la ciudad
           nombre: nuevo.nombre,
           correo: nuevo.correo,
           telefono: nuevo.telefono,
+          departamento: nuevo.departamentoResidencia, // si se diligencia, viaja junto con la ciudad
           ciudad: nuevo.ciudad,
           direccion: nuevo.direccion,
         }
@@ -244,7 +244,7 @@ export default function CotizacionNueva() {
 
         <section className="bloque" aria-labelledby="titulo-servicio">
           <h2 id="titulo-servicio">Servicio</h2>
-          {/* El departamento solo ayuda a elegir la ciudad: lo único que se guarda y se muestra es la ciudad */}
+          {/* departamentoResidencia se envía como "departamento" junto con la ciudad, y se guarda ambos */}
           <CamposUbicacion
             datos={servicio} errores={errores} onCambio={cambiarServicio}
             nombreDepartamento="departamentoServicio" nombreCiudad="ciudadServicio"

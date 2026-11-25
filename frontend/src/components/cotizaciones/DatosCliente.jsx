@@ -53,6 +53,8 @@ export default function DatosCliente({
             <dd>{existente.correo ?? 'No registrado'}</dd>
             <dt>Teléfono</dt>
             <dd>{existente.telefono ?? 'No registrado'}</dd>
+            <dt>Departamento de residencia</dt>
+            <dd>{existente.departamento ?? 'No registrado'}</dd>
             <dt>Ciudad de residencia</dt>
             <dd>{existente.ciudad ?? 'No registrada'}</dd>
             <dt>Dirección</dt>
