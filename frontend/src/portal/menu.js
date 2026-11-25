@@ -1,18 +1,20 @@
 // Fuente única de lo que cada rol ve en el portal.
 export const TODOS_LOS_ROLES = ['ADMINISTRADOR', 'TECNICO_LIDER', 'TECNICO']
 export const ADMIN_Y_LIDER = ['ADMINISTRADOR', 'TECNICO_LIDER']
+export const SOLO_ADMINISTRADOR = ['ADMINISTRADOR']
 
 // Cabecera: solo "Inicio". La cabecera no muestra datos del usuario ni de la empresa.
 export const MENU = [{ ruta: '/inicio', texto: 'Inicio', roles: TODOS_LOS_ROLES }]
 
-// Panel lateral UX: los MÓDULOS de trabajo, según el rol. Solo están los que ya existen;
+// Panel lateraL: los MÓDULOS de trabajo, según el rol. Solo están los que ya existen;
 // cada módulo agrega su línea cuando se construye, para no dejar enlaces que no llevan a ninguna parte.
-// Previstos, según los permisos de la definición:
-//   Casos (todos los roles) · Cotizaciones y Clientes (Administrador y Líder) ·
+// Previstos: Casos (todos los roles) · Clientes se consultan desde el buscador de Inicio y los casos·
 //   Facturación y métricas (solo el Administrador) · Solicitudes de piezas (se decide con su módulo)
 export const MODULOS = [
   { ruta: '/cotizaciones', texto: 'Cotizaciones', roles: ADMIN_Y_LIDER },
   { ruta: '/inventario', texto: 'Inventario', roles: ADMIN_Y_LIDER },
+  // Sedes: solo el Administrador las gestiona. El Líder las elige al cotizar, sin ver el módulo.
+  { ruta: '/sedes', texto: 'Sedes', roles: SOLO_ADMINISTRADOR },
 ]
 
 // Menú del círculo de perfil: la cuenta y "Gestión de usuarios". Los módulos NO van aquí.
