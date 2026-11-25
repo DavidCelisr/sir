@@ -9,12 +9,12 @@ export async function buscarInvitacionVigente(token) {
   });
 }
 
-// RF-06 y RF-07: registra la empresa y consume la invitación
+// registra la empresa y consume la invitación
 export async function registrarEmpresa(token, datosEmpresa, datosResponsable) {
-  // Transacción: si algo falla, TODO se revierte (incluido el uso del token, RN-30)
+  // Transacción: si algo falla, TODO se revierte (incluido el uso del token)
   const empresa = await prisma.$transaction(async (tx) => {
     // 1. Reclamar la invitación con un solo UPDATE condicional. Si dos peticiones
-    //    llegan a la vez, solo una lo logra (un solo uso, RT-02).
+    //    llegan a la vez, solo una lo logra.
     const reclamada = await tx.invitacion.updateMany({
       where: { token, usadaEn: null, expiraEn: { gt: new Date() } },
       data: { usadaEn: new Date() },
@@ -37,9 +37,21 @@ export async function registrarEmpresa(token, datosEmpresa, datosResponsable) {
     }
 
     // 3. Crear Empresa y Responsable juntas. El número de contrato lo asigna
-    //    solo la base de datos (RT-03).
+    //    solo la base de datos.
     const nueva = await tx.empresa.create({
       data: { ...datosEmpresa, responsable: { create: datosResponsable } },
+    });
+
+    // cada empresa nace con su sede principal y su ubicación de registro
+    // Se crea en la misma transacción para evitar empresas sin sede.
+    await tx.sede.create({
+      data: {
+        empresaId: nueva.id,
+        nombre: 'Sede principal',
+        departamento: datosEmpresa.departamento,
+        ciudad: datosEmpresa.ciudad,
+        esPrincipal: true,
+      },
     });
 
     // 4. Dejar la invitación asociada a la empresa creada
