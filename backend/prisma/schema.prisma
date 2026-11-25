@@ -72,6 +72,7 @@ model Empresa {
   clientes            Cliente[]
   cotizaciones        Cotizacion[]
   contadorCotizacion  ContadorCotizacion?
+  sedes               Sede[]
 
   @@unique([tipoIdentificacion, numeroIdentificacion])
 }
@@ -283,4 +284,21 @@ model CotizacionLinea {
 
   @@index([cotizacionId])
   @@index([piezaId])
+}
+
+// Sede de la empresa: identifica a qué ubicación corresponde cada cotización y cada caso.
+// No limita lo que ve cada usuario ni se asigna a usuarios.
+model Sede {
+  id           Int      @id @default(autoincrement())
+  empresaId    Int
+  empresa      Empresa  @relation(fields: [empresaId], references: [id])
+  nombre       String // nombre o código que define la empresa; único entre las sedes activas (índice en la migración)
+  direccion    String?
+  departamento String
+  ciudad       String
+  esPrincipal  Boolean  @default(false) // una sola por empresa y siempre activa (índice y CHECK en la migración)
+  activo       Boolean  @default(true) // false = sede eliminada (inactivación lógica)
+  creadaEn     DateTime @default(now())
+
+  @@index([empresaId])
 }
