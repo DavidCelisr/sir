@@ -11,6 +11,7 @@ import rutasRecuperacion from './modules/recuperacion/recuperacion.routes.js';
 import rutasSesion from './modules/auth/sesion.routes.js';
 import rutasInventario from './modules/inventario/inventario.routes.js';
 import rutasClientes from './modules/clientes/clientes.routes.js';
+import rutasCotizaciones from './modules/cotizaciones/cotizaciones.routes.js';
 
 const app = express();
 app.use(express.json());
@@ -31,6 +32,7 @@ const rutasPortal = express.Router();
 rutasPortal.use('/usuarios', rutasUsuarios);
 rutasPortal.use('/inventario', rutasInventario);
 rutasPortal.use('/clientes', rutasClientes);
+rutasPortal.use('/cotizaciones', rutasCotizaciones);
 rutasPortal.use('/sesion', rutasSesion);
 app.use('/api/portal', autenticar, soloEmpresa, rutasPortal);
 
