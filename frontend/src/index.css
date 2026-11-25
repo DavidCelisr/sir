@@ -298,3 +298,26 @@ dialog.dialogo-pieza { width: 460px; max-width: 92vw; border: 1px solid #333; pa
 .historial { list-style: none; margin: 0; padding: 0; }
 .historial li { padding: 8px 0; border-bottom: 1px solid #ddd; }
 .historial small { display: block; color: #555; }
+/* Cotizaciones */
+.bloque { margin: 24px 0; padding-bottom: 8px; border-bottom: 1px solid #ddd; }
+.bloque h2 { font-size: 1.1em; margin: 0 0 12px; }
+.bloque h3 { font-size: 1em; margin: 20px 0 8px; }
+.campo textarea { width: 100%; padding: 8px; box-sizing: border-box; font: inherit; resize: vertical; }
+.tabla th.num, .tabla td.num { text-align: right; font-variant-numeric: tabular-nums; }
+.tabla input.cantidad { width: 5em; }
+.campo input[aria-invalid="true"],
+.campo textarea[aria-invalid="true"],
+.tabla input[aria-invalid="true"] { border: 1px solid #b00020; }
+.detalle-linea { display: block; color: #555; }
+.texto-libre { white-space: pre-wrap; }
+.texto-legal { font-size: 0.85em; margin-top: 24px; }
+.acciones-cotizacion { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin: 16px 0; }
+.documento-cotizacion h2 { font-size: 1.05em; margin: 20px 0 8px; }
+
+/* Al imprimir o guardar como PDF: solo el documento */
+@media print {
+  .cabecera, .no-imprimir { display: none !important; }
+  body { padding: 0; }
+  main { max-width: none; margin: 0; }
+  .tabla tr, .texto-legal { break-inside: avoid; }
+}

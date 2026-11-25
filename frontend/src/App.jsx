@@ -13,6 +13,9 @@ import RutaRol from './components/RutaRol.jsx'
 import LayoutPortal from './components/LayoutPortal.jsx'
 import { ADMIN_Y_LIDER } from './portal/menu.js'
 import PiezaNueva from './pages/PiezaNueva.jsx'
+import Cotizaciones from './pages/Cotizaciones.jsx'
+import CotizacionNueva from './pages/CotizacionNueva.jsx'
+import CotizacionDetalle from './pages/CotizacionDetalle.jsx'
 
 // Mapa de pantallas: cada URL muestra una pantalla del documento de definición.
 export default function App() {
@@ -40,6 +43,10 @@ export default function App() {
         {/* Módulos del panel lateral. Inventario: Administrador y Técnico Líder */}
         <Route path="/inventario" element={<RutaRol roles={ADMIN_Y_LIDER}><Inventario /></RutaRol>} />
         <Route path="/inventario/nueva" element={<RutaRol roles={ADMIN_Y_LIDER}><PiezaNueva /></RutaRol>} />
+        {/* Cotizaciones: Administrador y Técnico Líder */}
+        <Route path="/cotizaciones" element={<RutaRol roles={ADMIN_Y_LIDER}><Cotizaciones /></RutaRol>} />
+        <Route path="/cotizaciones/nueva" element={<RutaRol roles={ADMIN_Y_LIDER}><CotizacionNueva /></RutaRol>} />
+        <Route path="/cotizaciones/:id" element={<RutaRol roles={ADMIN_Y_LIDER}><CotizacionDetalle /></RutaRol>} />
       </Route>
 
       {/* Cualquier otra dirección */}
