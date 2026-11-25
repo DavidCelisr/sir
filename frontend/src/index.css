@@ -321,3 +321,29 @@ dialog.dialogo-pieza { width: 460px; max-width: 92vw; border: 1px solid #333; pa
   main { max-width: none; margin: 0; }
   .tabla tr, .texto-legal { break-inside: avoid; }
 }
+/* Sedes */
+.etiqueta-principal {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 8px;
+  border: 1px solid #333;
+  font-size: 0.8em;
+  font-weight: 600;
+}
+
+.acciones-fila {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.acciones-fila .boton-enlace {
+  padding: 6px 12px;
+}
+
+.nota-fila {
+  display: block;
+  max-width: 22em;
+  color: #555;
+}

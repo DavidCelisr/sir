@@ -11,11 +11,14 @@ import Inventario from './pages/Inventario.jsx'
 import RutaProtegida from './components/RutaProtegida.jsx'
 import RutaRol from './components/RutaRol.jsx'
 import LayoutPortal from './components/LayoutPortal.jsx'
-import { ADMIN_Y_LIDER } from './portal/menu.js'
+import { ADMIN_Y_LIDER, SOLO_ADMINISTRADOR } from './portal/menu.js'
 import PiezaNueva from './pages/PiezaNueva.jsx'
 import Cotizaciones from './pages/Cotizaciones.jsx'
 import CotizacionNueva from './pages/CotizacionNueva.jsx'
 import CotizacionDetalle from './pages/CotizacionDetalle.jsx'
+import Sedes from './pages/Sedes.jsx'
+import SedeNueva from './pages/SedeNueva.jsx'
+import SedeEditar from './pages/SedeEditar.jsx'
 
 // Mapa de pantallas: cada URL muestra una pantalla del documento de definición.
 export default function App() {
@@ -47,6 +50,10 @@ export default function App() {
         <Route path="/cotizaciones" element={<RutaRol roles={ADMIN_Y_LIDER}><Cotizaciones /></RutaRol>} />
         <Route path="/cotizaciones/nueva" element={<RutaRol roles={ADMIN_Y_LIDER}><CotizacionNueva /></RutaRol>} />
         <Route path="/cotizaciones/:id" element={<RutaRol roles={ADMIN_Y_LIDER}><CotizacionDetalle /></RutaRol>} />
+        {/* Sedes: solo el Administrador */}
+        <Route path="/sedes" element={<RutaRol roles={SOLO_ADMINISTRADOR}><Sedes /></RutaRol>} />
+        <Route path="/sedes/nueva" element={<RutaRol roles={SOLO_ADMINISTRADOR}><SedeNueva /></RutaRol>} />
+        <Route path="/sedes/:id/editar" element={<RutaRol roles={SOLO_ADMINISTRADOR}><SedeEditar /></RutaRol>} />
       </Route>
 
       {/* Cualquier otra dirección */}
